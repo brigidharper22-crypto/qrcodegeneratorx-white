@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>qrcodegeneratorx | Free QR Code Generator</title>
+    <!-- Patch window.fetch to support setters before third-party ad/analytics scripts initialize -->
+    <script>
+      (function() {
+        try {
+          var originalFetch = window.fetch;
+          var fetchValue = originalFetch;
+          Object.defineProperty(window, 'fetch', {
+            get: function() { return fetchValue; },
+            set: function(val) { fetchValue = val; },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (e) {
+          console.warn("Could not patch fetch property descriptor:", e);
+        }
+      })();
+    </script>
+    <!-- Preconnect to high priority SEO and script networks -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://scripts.mediavine.com" />
+    <!-- Global Mediavine Journey Script Placement -->
+    <script src="https://scripts.mediavine.com/tags/qrcodegeneratorx.js" defer type="text/javascript"></script>
+    <script type="module" crossorigin src="/assets/index-L2lTdA1A.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CWlwD07-.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://qrcodegeneratorx.com/en</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qrcodegeneratorx.com/en"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qrcodegeneratorx.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://qrcodegeneratorx.com/es"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qrcodegeneratorx.com/ar"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://qrcodegeneratorx.com/de"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://qrcodegeneratorx.com/zh"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://qrcodegeneratorx.com/pt"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://qrcodegeneratorx.com/ja"/>
+  </url>
+  <!-- How it works -->
+  <url>
+    <loc>https://qrcodegeneratorx.com/en/how-it-works</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- Features -->
+  <url>
+    <loc>https://qrcodegeneratorx.com/en/features</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- FAQ -->
+  <url>
+    <loc>https://qrcodegeneratorx.com/en/faq</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- Blog index -->
+  <url>
+    <loc>https://qrcodegeneratorx.com/en/blog</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- Blog Articles -->
+  <url>
+    <loc>https://qrcodegeneratorx.com/en/blog/what-is-qr-code</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://qrcodegeneratorx.com/en/blog/best-free-generators</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://qrcodegeneratorx.com/en/blog/how-to-create-wifi-qr</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://qrcodegeneratorx.com/en/blog/qr-code-for-business</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://qrcodegeneratorx.com/en/blog/how-to-add-logo-qr</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>
