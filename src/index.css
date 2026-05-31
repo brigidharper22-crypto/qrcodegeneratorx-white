@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Syne", sans-serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
+}
+
+@layer utilities {
+  /* Dynamic Bento dot-grid background */
+  .bg-dot-grid {
+    background-image: radial-gradient(#e2e8f0 1.2px, transparent 1.2px);
+    background-size: 24px 24px;
+    background-color: #ffffff;
+  }
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Base header styles */
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+/* 100% Bento Custom input fields styling */
+#qr-generator-root input[type="text"],
+#qr-generator-root input[type="url"],
+#qr-generator-root input[type="tel"],
+#qr-generator-root input[type="email"],
+#qr-generator-root input[type="number"],
+#qr-generator-root input[type="password"],
+#qr-generator-root textarea,
+#qr-generator-root select {
+  border: 2px solid #eff6ff !important;
+  background-color: #ffffff !important;
+  border-radius: 0.75rem !important; /* rounded-xl */
+  padding: 0.75rem 1rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: #0f172a !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+#qr-generator-root input[type="text"]:focus,
+#qr-generator-root input[type="url"]:focus,
+#qr-generator-root input[type="tel"]:focus,
+#qr-generator-root input[type="email"]:focus,
+#qr-generator-root input[type="number"]:focus,
+#qr-generator-root input[type="password"]:focus,
+#qr-generator-root textarea:focus,
+#qr-generator-root select:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08) !important;
+}
+
+/* Rounded range inputs with theme colors */
+#qr-generator-root input[type="range"] {
+  height: 6px !important;
+  background-color: #eff6ff !important;
+  border-radius: 9999px !important;
+  appearance: none !important;
+  cursor: pointer !important;
+}
+
+#qr-generator-root input[type="range"]::-webkit-slider-thumb {
+  appearance: none !important;
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 9999px !important;
+  background-color: #2563eb !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.25) !important;
+  transition: transform 0.1s ease !important;
+}
+
+#qr-generator-root input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15) !important;
+}
+
+/* Beautiful custom section label tags */
+#qr-generator-root label,
+.qrify-label {
+  font-size: 10px !important;
+  text-transform: uppercase !important;
+  font-weight: 800 !important;
+  color: #94a3b8 !important;
+  letter-spacing: 0.1em !important;
+  display: block !important;
+  margin-bottom: 0.5rem !important;
+}
+

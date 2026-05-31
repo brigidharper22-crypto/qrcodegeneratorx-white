@@ -1,0 +1,6 @@
+{
+  "name": "Free QR Code Generator",
+  "description": "Generate custom QR codes instantly for URLs, WiFi, vCards, emails, WhatsApp, location and more. Fast, secure, and fully customized with colors and logos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
