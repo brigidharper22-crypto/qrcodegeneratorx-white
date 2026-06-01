@@ -25,7 +25,147 @@ interface BlogCardProps {
   key?: string;
 }
 
+const RE_BLOG_TRANSLATIONS: Record<string, {
+  readFullArticle: string;
+  backToBlogList: string;
+  tryDirectGenerator: string;
+  shareArticle: string;
+  copied: string;
+  copyLink: string;
+  tableOfContents: string;
+  readyToCreateTitle: string;
+  readyToCreateDesc: string;
+  launchFreeGenerator: string;
+  targetKeywords: string;
+  keepReadingGuides: string;
+  readGuide: string;
+}> = {
+  ar: {
+    readFullArticle: "اقرأ المقال كاملاً",
+    backToBlogList: "العودة إلى قائمة المدونة",
+    tryDirectGenerator: "جرب أداة المصمم مباشرة",
+    shareArticle: "مشاركة المقال:",
+    copied: "تم النسخ!",
+    copyLink: "نسخ الرابط",
+    tableOfContents: "جدول المحتويات والرموز",
+    readyToCreateTitle: "جاهز لإنشاء كود الـ QR الخاص بك؟",
+    readyToCreateDesc: "استمتع بأقوى موّلد كروت كود QR ثابت وآمن ومجاني ومفتوح بالكامل في الويب. صدر ملفات متجهة على الفور بنقاء فائق.",
+    launchFreeGenerator: "أطلق المولد المجاني",
+    targetKeywords: "الكلمات المفتاحية المستهدفة:",
+    keepReadingGuides: "تابع القراءة: أدلة وتوجيهات ذات صلة",
+    readGuide: "اقرأ الدليل",
+  },
+  en: {
+    readFullArticle: "Read Full Article",
+    backToBlogList: "Back to Blog list",
+    tryDirectGenerator: "Try Direct Generator Tool",
+    shareArticle: "Share Article:",
+    copied: "Copied!",
+    copyLink: "Copy Link",
+    tableOfContents: "Table of Contents",
+    readyToCreateTitle: "Ready to Create Your Custom QR Code?",
+    readyToCreateDesc: "Experience the web's most powerful, completely free, and secure client-side static generator. Craft vector assets instantly.",
+    launchFreeGenerator: "Launch Free Generator",
+    targetKeywords: "Target Keywords:",
+    keepReadingGuides: "Keep Reading: Related Guides",
+    readGuide: "Read Guide",
+  },
+  fr: {
+    readFullArticle: "Lire l'article complet",
+    backToBlogList: "Retour à l'index",
+    tryDirectGenerator: "Lancer le générateur",
+    shareArticle: "Partager l'article :",
+    copied: "Copié !",
+    copyLink: "Copier le lien",
+    tableOfContents: "Table des matières",
+    readyToCreateTitle: "Prêt à créer votre code QR ?",
+    readyToCreateDesc: "Découvrez notre moteur sur-mesure pour exporter gratuitement vos formats d'images.",
+    launchFreeGenerator: "Lancer le générateur",
+    targetKeywords: "Mots-clés cibles :",
+    keepReadingGuides: "Poursuivre la lecture : Guides connexes",
+    readGuide: "Lire le Guide",
+  },
+  es: {
+    readFullArticle: "Leer artículo completo",
+    backToBlogList: "Volver a la lista",
+    tryDirectGenerator: "Ir al generador directo",
+    shareArticle: "Compartir artículo:",
+    copied: "Copia exitosa",
+    copyLink: "Copiar enlace",
+    tableOfContents: "Índice de temas",
+    readyToCreateTitle: "¿Pronto para crear su código QR?",
+    readyToCreateDesc: "Disfrute de la plataforma estática nativa libre de anuncios intrusivos y totalmente portable.",
+    launchFreeGenerator: "Abrir generador gratis",
+    targetKeywords: "Tópicos de búsqueda:",
+    keepReadingGuides: "Continúe leyendo sobre el tema:",
+    readGuide: "Ver Guía técnica",
+  },
+  de: {
+    readFullArticle: "Vollständigen Artikel lesen",
+    backToBlogList: "Zurück zum Blog",
+    tryDirectGenerator: "Direkt zum Generator",
+    shareArticle: "Artikel teilen:",
+    copied: "Kopiert!",
+    copyLink: "Link kopieren",
+    tableOfContents: "Inhaltsverzeichnis",
+    readyToCreateTitle: "Bereit für Ihren QR-Code?",
+    readyToCreateDesc: "Verwenden Sie unsere clientseitige Software für sofort hunderte fehlerfreie Scans gratis.",
+    launchFreeGenerator: "Generator starten",
+    targetKeywords: "Relevante Suchbegriffe:",
+    keepReadingGuides: "Weitere interessante Artikel:",
+    readGuide: "Artikel lesen",
+  },
+  zh: {
+    readFullArticle: "阅读文章全文",
+    backToBlogList: "返回文章列表",
+    tryDirectGenerator: "极速体验生成器工具",
+    shareArticle: "一键分享本文 :",
+    copied: "已复制成功 !",
+    copyLink: "复制本文链接",
+    tableOfContents: "目录指南",
+    readyToCreateTitle: "准备好生成品牌二维码了吗 ?",
+    readyToCreateDesc: "体验全网最好用的纯本端点对点高级编码服务，带去无损矢量打包支持。",
+    launchFreeGenerator: "点击打开免费工具",
+    targetKeywords: "靶向检索词汇 :",
+    keepReadingGuides: "猜您喜欢 : 行业相关见解",
+    readGuide: "阅读攻略",
+  },
+  pt: {
+    readFullArticle: "Ler Matéria Completa",
+    backToBlogList: "Voltar para Lista",
+    tryDirectGenerator: "Rodar Painel Direto",
+    shareArticle: "Compartilhar Post:",
+    copied: "Copiado!",
+    copyLink: "Copiar link curto",
+    tableOfContents: "Sumário do Guia",
+    readyToCreateTitle: "Deseja projetar seu código QR?",
+    readyToCreateDesc: "Obtenha cópias definitivas renderizadas localmente e prontas para colocar na sacola comercial.",
+    launchFreeGenerator: "Iniciar gerador grátis",
+    targetKeywords: "Tags de busca:",
+    keepReadingGuides: "Aprenda mais com outros artigos:",
+    readGuide: "Acessar Guia",
+  },
+  ja: {
+    readFullArticle: "全編を読む",
+    backToBlogList: "ブログ一覧に戻る",
+    tryDirectGenerator: "無料作成ボードを試す",
+    shareArticle: "記事をシェアする：",
+    copied: "コピーしました！",
+    copyLink: "リンクをコピー",
+    tableOfContents: "目次",
+    readyToCreateTitle: "オリジナルQRコードを作成しませんか？",
+    readyToCreateDesc: "ブラウザ専用の安心・安全な高画質コーディングをお試しください。面倒な設定や支払はなし。",
+    launchFreeGenerator: "作成器を起動する",
+    targetKeywords: "技術キーワードの一覧：",
+    keepReadingGuides: "こちらの関連記事もおすすめです：",
+    readGuide: "コラムを読む",
+  }
+};
+
 export function BlogCard({ post, onClick }: BlogCardProps) {
+  const { locale } = useI18n();
+  const bLabels = RE_BLOG_TRANSLATIONS[locale] || RE_BLOG_TRANSLATIONS.en;
+
   return (
     <article
       className="bg-white border border-slate-200/80 rounded-2xl p-6 hover:border-blue-500 hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
@@ -65,7 +205,7 @@ export function BlogCard({ post, onClick }: BlogCardProps) {
           onClick={onClick}
           className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-blue-600 hover:text-blue-700 transition-colors cursor-pointer focus:outline-none"
         >
-          <span>Read Full Article</span>
+          <span>{bLabels.readFullArticle}</span>
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
@@ -80,9 +220,11 @@ interface BlogPostDetailProps {
 }
 
 export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps) {
-  const { t } = useI18n();
+  const { locale, isRTL } = useI18n();
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showCopyFeedback, setShowCopyFeedback] = useState(false);
+
+  const bLabels = RE_BLOG_TRANSLATIONS[locale] || RE_BLOG_TRANSLATIONS.en;
 
   // 1. Reading Progress Bar Monitor
   useEffect(() => {
@@ -205,7 +347,7 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 py-4 relative">
+    <div className="max-w-4xl mx-auto space-y-8 py-4 relative" dir={isRTL ? "rtl" : "ltr"}>
       {/* Scroll indicator bar fixed at top of viewport */}
       <div className="fixed top-0 left-0 right-0 h-1.5 bg-slate-100 z-[100] pointer-events-none">
         <div
@@ -220,8 +362,8 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
           onClick={onBack}
           className="inline-flex items-center gap-2 group px-4 py-2 border border-slate-200 hover:border-blue-500 hover:text-blue-600 rounded-xl text-sm font-semibold transition-colors bg-white shadow-sm cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          <span>Back to Blog list</span>
+          <ArrowLeft className={`w-4 h-4 transition-transform ${isRTL ? "rotate-180 group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} />
+          <span>{bLabels.backToBlogList}</span>
         </button>
 
         <button
@@ -233,7 +375,7 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
           }}
           className="text-xs font-bold text-slate-500 hover:text-blue-600 flex items-center gap-1 transition-colors cursor-pointer"
         >
-          <span>Try Direct Generator Tool</span>
+          <span>{bLabels.tryDirectGenerator}</span>
           <ArrowUpRight className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -265,7 +407,7 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
         <div className="bg-slate-50 border border-slate-150 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-2">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">
             <Share2 className="w-4 h-4 text-blue-600 animate-pulse" />
-            <span>Share Article:</span>
+            <span>{bLabels.shareArticle}</span>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -302,7 +444,7 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
               aria-label="Copy short link"
             >
               {showCopyFeedback ? <CheckCircle className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
-              <span>{showCopyFeedback ? "Copied!" : "Copy Link"}</span>
+              <span>{showCopyFeedback ? bLabels.copied : bLabels.copyLink}</span>
             </button>
           </div>
         </div>
@@ -319,7 +461,7 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
           <div className="bg-slate-55 border border-slate-200/80 rounded-2xl p-5 md:p-6 mb-8 shadow-sm">
             <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-3.5 flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-blue-600" />
-              <span>Table of Contents</span>
+              <span>{bLabels.tableOfContents}</span>
             </h3>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 font-medium">
               {headings.map((item, idx) => (
@@ -399,10 +541,10 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
           <div className="space-y-1.5 relative z-10">
             <h4 className="font-bold text-base md:text-xl flex items-center gap-1.5">
               <Sparkles className="w-5 h-5 text-blue-400 shrink-0 animate-pulse" />
-              <span>Ready to Create Your Custom QR Code?</span>
+              <span>{bLabels.readyToCreateTitle}</span>
             </h4>
             <p className="text-xs md:text-sm text-slate-300 max-w-xl leading-relaxed">
-              Experience the web's most powerful, completely free, and secure client-side static generator. Craft vector assets instantly.
+              {bLabels.readyToCreateDesc}
             </p>
           </div>
           <button
@@ -414,14 +556,14 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
             }}
             className="px-5 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-transform active:scale-95 shrink-0 cursor-pointer relative z-10 hover:shadow-blue-550/20"
           >
-            Launch Free Generator
+            {bLabels.launchFreeGenerator}
           </button>
         </div>
 
         {/* Keyword list display for good SEO index mapping */}
         <div className="border-t border-slate-100 pt-8 mt-8 flex flex-wrap items-center gap-2">
           <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
-            Target Keywords:
+            {bLabels.targetKeywords}
           </span>
           {post.keywords.map((kw, idx) => (
             <span
@@ -438,7 +580,7 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 sm:p-8 space-y-6">
         <h3 className="text-lg font-black font-display text-slate-900 flex items-center gap-2">
           <Award className="w-5 h-5 text-blue-600" />
-          <span>Keep Reading: Related Guides</span>
+          <span>{bLabels.keepReadingGuides}</span>
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {relatedArticles.map((rel) => (
@@ -464,7 +606,7 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
                 }}
                 className="text-xs font-bold text-blue-600 hover:text-blue-700 mt-4 inline-flex items-center gap-1.5 focus:outline-none transition-colors cursor-pointer text-left"
               >
-                <span>Read Guide</span>
+                <span>{bLabels.readGuide}</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
