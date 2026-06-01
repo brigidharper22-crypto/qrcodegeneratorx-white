@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { QRConfig, QRType, QRHistoryItem } from "../../types";
 import { useI18n } from "../../hooks/useI18n";
 import QRCode from "qrcode";
+import { jsPDF } from "jspdf";
 import {
   Download,
   Share2,
@@ -496,86 +497,47 @@ export default function QRPreview({ data, type, config, onSaveToHistory }: QRPre
     }
 
     try {
-      const imgData = canvas.toDataURL("image/jpeg", 1.0);
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4"
+      });
 
-      // Create raw, compliant 100% Client-Side PDF vector document
-      // We manually build a lightweight, standard PDF blob to completely bypass third-party bundle errors
-      const pdfWidth = 595; // A4 standard width pixels 
-      const pdfHeight = 842; // A4 standard height pixels
-      const qrPrintSize = 350; // crisp printed size
-      const x = (pdfWidth - qrPrintSize) / 2;
-      const y = (pdfHeight - qrPrintSize) / 2 - 40;
+      // A4 page dimensions are 210 x 297 mm
+      // Let's place the QR code centered and sized elegantly
+      const qrWidth = 120;
+      const qrHeight = 120;
+      const x = (210 - qrWidth) / 2;
+      const y = (297 - qrHeight) / 2 - 20; // Slightly raised above center
 
-      // Construct plain PDF structures
-      const pdfString = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pdfWidth} ${pdfHeight}] /Resources << /XObject << /Im1 4 0 R >> >> /Contents 5 0 R >>
-endobj
-4 0 obj
-<< /Type /XObject /Subtype /Image /Width ${config.resolution} /Height ${config.resolution} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imgData.length} >>
-stream
-${imgData}
-endstream
-endobj
-5 0 obj
-<< /Length 120 >>
-stream
-q
-${qrPrintSize} 0 0 ${qrPrintSize} ${x} ${y} cm
-/Im1 Do
-Q
-BT
-/Helvetica 14 Tf
-70 700 Td
-(qrcodegeneratorx - High Resolution Printable PDF Document) Tj
-ET
-endstream
-endobj
-xref
-0 6
-0000000000 65535 f 
-0000000010 00000 n 
-0000000060 00000 n 
-0000000115 00000 n 
-0000000280 00000 n 
-0000000450 00000 n 
-trailer
-<< /Size 6 /Root 1 0 R >>
-startxref
-650
-%%EOF`;
+      // Add elegant typography and branding
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.setTextColor(15, 23, 42); // slate-900
+      pdf.text("Custom QR Code", 105, 45, { align: "center" });
 
-      const blob = new Blob([pdfString], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.download = `qrcodegeneratorx-${type}-print-${new Date().getTime()}.pdf`;
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      triggerToast("Print-ready PDF downloaded successfully!");
-    } catch {
-      // Elegant alternative using canvas data embedding in an iframe and triggering native PDF save
-      const win = window.open("", "_blank");
-      if (win) {
-        win.document.write(`<html><head><title>Print QR Code</title></head><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#f0fafc;">
-          <div style="text-align:center;font-family:sans-serif;background:white;padding:50px;border-radius:24px;box-shadow:0 10px 40px rgba(0,0,0,0.05);max-width:500px;">
-            <p style="font-weight:bold;color:#0f172a;font-size:18px;margin-bottom:8px;">qrcodegeneratorx Printable Sheet</p>
-            <p style="color:#64748b;font-size:13px;margin-bottom:24px;">Format: ${type.toUpperCase()} | Resolution: ${config.resolution}px</p>
-            <img src="${canvas.toDataURL("image/png")}" style="width:300px;height:300px;display:block;margin:0 auto 24px auto;" />
-            <button onclick="window.print()" style="background:#2563eb;color:white;border:none;padding:12px 24px;border-radius:12px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,0.15)">Print / Save PDF</button>
-          </div>
-        </body></html>`);
-        win.document.close();
-        triggerToast("Alternative printing portal launched!");
-      }
+      // Add subtitle with generation details
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 116, 139); // slate-500
+      pdf.text(`Format: ${type.toUpperCase()} | Resolution: ${config.resolution}x${config.resolution}px`, 105, 53, { align: "center" });
+
+      // Embed high-quality PNG image onto the PDF
+      pdf.addImage(imgData, "PNG", x, y, qrWidth, qrHeight);
+
+      // Add a clean footer
+      pdf.setFontSize(9);
+      pdf.setTextColor(148, 163, 184); // slate-400
+      pdf.text("Scan this QR code with any mobile camera or scanner app.", 105, 240, { align: "center" });
+      pdf.text("Generated via qrcodegeneratorx.com", 105, 246, { align: "center" });
+
+      // Safe save trigger
+      pdf.save(`qrcodegeneratorx-${type}-print-${new Date().getTime()}.pdf`);
+      triggerToast(locale === "ar" ? "تم تحميل ملف PDF بنجاح!" : "Print-ready PDF downloaded successfully!");
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      triggerToast(locale === "ar" ? "حدث خطأ أثناء تحميل ملف PDF." : "Error downloading PDF document.");
     }
   };
 
