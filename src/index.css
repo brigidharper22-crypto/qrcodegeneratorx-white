@@ -104,3 +104,14 @@ h1, h2, h3, .font-display {
   margin-bottom: 0.5rem !important;
 }
 
+/* Collapse empty Mediavine ad slots to eliminate massive white spacing blanks */
+.mediavine-ad:empty {
+  display: none !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
+
