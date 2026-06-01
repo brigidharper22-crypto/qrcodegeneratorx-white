@@ -10,9 +10,7 @@ export const AD_PLACEMENTS: Record<string, AdPlacement> = {
   stickyLeaderboard: {
     id: "mv-sticky-leaderboard",
     style: {
-      position: "sticky",
-      top: 0,
-      zIndex: 999,
+      position: "relative",
       background: "#fff",
       display: "flex",
       justifyContent: "center",
@@ -34,8 +32,7 @@ export const AD_PLACEMENTS: Record<string, AdPlacement> = {
   sidebarSticky: {
     id: "mv-sidebar-sticky",
     style: {
-      position: "sticky",
-      top: "100px",
+      position: "relative",
       minHeight: "600px",
       minWidth: "300px",
       display: "flex",

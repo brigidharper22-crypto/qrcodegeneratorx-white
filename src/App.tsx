@@ -8,7 +8,7 @@ import JsonLd from "./components/seo/JsonLd";
 import QRGenerator from "./components/tool/QRGenerator";
 import FAQAccordion from "./components/ui/FAQAccordion";
 import { BlogCard, BlogPostDetail } from "./components/ui/BlogCard";
-import { BLOG_POSTS } from "./data/blogData";
+import { BLOG_POSTS, getBlogPostsForLocale } from "./data/blogData";
 import {
   HowItWorksView,
   FeaturesView,
@@ -519,7 +519,7 @@ export default function App() {
   const getBlogPost = () => {
     if (currentPage.startsWith("blog/")) {
       const id = currentPage.replace("blog/", "");
-      return BLOG_POSTS.find((p) => p.id === id);
+      return getBlogPostsForLocale(locale).find((p) => p.id === id);
     }
     return undefined;
   };
@@ -776,7 +776,7 @@ export default function App() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Render first 3 posts */}
-                    {BLOG_POSTS.slice(0, 3).map((post) => (
+                    {getBlogPostsForLocale(locale).slice(0, 3).map((post) => (
                       <BlogCard
                         key={post.id}
                         post={post}
@@ -857,7 +857,7 @@ export default function App() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Render all articles */}
-                  {BLOG_POSTS.map((post) => (
+                  {getBlogPostsForLocale(locale).map((post) => (
                     <BlogCard
                       key={post.id}
                       post={post}

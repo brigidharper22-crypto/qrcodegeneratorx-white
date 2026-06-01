@@ -11,6 +11,7 @@ import {
   Sparkles,
   Link as LinkIcon,
   BookOpen,
+  Mail,
 } from "lucide-react";
 
 interface QRPreviewProps {
@@ -21,7 +22,7 @@ interface QRPreviewProps {
 }
 
 export default function QRPreview({ data, type, config, onSaveToHistory }: QRPreviewProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -29,6 +30,166 @@ export default function QRPreview({ data, type, config, onSaveToHistory }: QRPre
   const [historyLabel, setHistoryLabel] = useState<string>("");
   const [toastMsg, setToastMsg] = useState<string>("");
   const [scaleTrigger, setScaleTrigger] = useState<boolean>(false);
+
+  const labels: Record<string, Record<string, string>> = {
+    share_via: {
+      ar: "مشاركة عبر:",
+      en: "Share via:",
+      fr: "Partager via :",
+      es: "Compartir vía:",
+      de: "Teilen über:",
+      zh: "通过分享:",
+      pt: "Compartilhar via:",
+      ja: "共有方法:",
+    },
+    whatsapp: {
+      ar: "واتساب",
+      en: "WhatsApp",
+      fr: "WhatsApp",
+      es: "WhatsApp",
+      de: "WhatsApp",
+      zh: "WhatsApp",
+      pt: "WhatsApp",
+      ja: "WhatsApp",
+    },
+    facebook: {
+      ar: "فيسبوك",
+      en: "Facebook",
+      fr: "Facebook",
+      es: "Facebook",
+      de: "Facebook",
+      zh: "Facebook",
+      pt: "Facebook",
+      ja: "Facebook",
+    },
+    twitter: {
+      ar: "إكس (تويتر)",
+      en: "X (Twitter)",
+      fr: "X (Twitter)",
+      es: "X (Twitter)",
+      de: "X (Twitter)",
+      zh: "X (Twitter)",
+      pt: "X (Twitter)",
+      ja: "X (Twitter)",
+    },
+    telegram: {
+      ar: "تيليجرام",
+      en: "Telegram",
+      fr: "Telegram",
+      es: "Telegram",
+      de: "Telegram",
+      zh: "Telegram",
+      pt: "Telegram",
+      ja: "Telegram",
+    },
+    linkedin: {
+      ar: "لينكد إن",
+      en: "LinkedIn",
+      fr: "LinkedIn",
+      es: "LinkedIn",
+      de: "LinkedIn",
+      zh: "LinkedIn",
+      pt: "LinkedIn",
+      ja: "LinkedIn",
+    },
+    email: {
+      ar: "البريد الإلكتروني",
+      en: "Email",
+      fr: "Email",
+      es: "Email",
+      de: "E-Mail",
+      zh: "电子邮件",
+      pt: "Email",
+      ja: "メール",
+    },
+  };
+
+  const getLabel = (key: string) => {
+    return labels[key]?.[locale] || labels[key]?.["en"] || key;
+  };
+
+  const getCompiledShareUrl = () => {
+    try {
+      const serializedObj = {
+        d: data,
+        t: type,
+        f: config.fgColor,
+        b: config.bgColor,
+        r: config.resolution,
+        e: config.errorCorrectionLevel,
+      };
+      const base64Str = btoa(encodeURIComponent(JSON.stringify(serializedObj)));
+      return `${window.location.origin}/${locale}?qrs=${base64Str}`;
+    } catch {
+      return `${window.location.origin}/${locale}`;
+    }
+  };
+
+  const shareUrl = getCompiledShareUrl();
+  const textEn = "Create custom QR codes instantly with qrcodegeneratorx.com!";
+  const textAr = "قم بإنشاء رموز QR مخصصة مجاناً وبسرعة مع qrcodegeneratorx.com!";
+  const shareText = locale === "ar" ? textAr : textEn;
+
+  const socialPlatforms = [
+    {
+      id: "whatsapp",
+      color: "bg-[#25D466]/10 hover:bg-[#25D466] text-[#25D466] hover:text-white hover:shadow-[#25D466]/25 border border-[#25D466]/20",
+      href: `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\n" + shareUrl)}`,
+      icon: (
+        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.964 9.964 0 0 0 1.37 5.054L2 22l5.077-1.331a9.927 9.927 0 0 0 4.93 1.302c5.506 0 9.99-4.478 9.99-9.985S17.519 2 12.012 2zm4.515 13.111c-.247.694-1.433 1.343-1.964 1.412-.486.063-1.121.074-1.802-.138-.415-.13-1.84-.61-2.485-.89-2.753-1.192-4.524-3.952-4.66-4.134-.136-.183-1.112-1.478-1.112-2.822 0-1.343.702-2.003.953-2.268.25-.264.55-.331.733-.331.183 0 .367.004.528.012.173.008.402-.065.628.48.228.556.78 1.901.848 2.04.067.138.112.302.02.485-.091.183-.138.302-.275.457-.138.156-.29.349-.415.47-.138.13-.284.275-.123.551.162.275.72 1.187 1.545 1.916.824.729 1.52.955 1.735 1.063.215.109.341.09.467-.053.127-.142.548-.64.694-.858.147-.218.293-.183.495-.109.202.074 1.282.605 1.502.715.22.109.367.162.421.254.054.091.054.53-.193 1.224z" />
+        </svg>
+      ),
+    },
+    {
+      id: "facebook",
+      color: "bg-[#1877F2]/10 hover:bg-[#1877F2] text-[#1877F2] hover:text-white hover:shadow-[#1877F2]/25 border border-[#1877F2]/20",
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+      icon: (
+        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      ),
+    },
+    {
+      id: "twitter",
+      color: "bg-slate-900/10 hover:bg-slate-900 text-slate-800 hover:text-white hover:shadow-slate-900/25 border border-slate-900/15",
+      href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`,
+      icon: (
+        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      ),
+    },
+    {
+      id: "telegram",
+      color: "bg-[#0088cc]/10 hover:bg-[#0088cc] text-[#0088cc] hover:text-white hover:shadow-[#0088cc]/25 border border-[#0088cc]/20",
+      href: `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`,
+      icon: (
+        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.14.73-1.04 5.01-1.5 7.42-.2.99-.57 1.32-.93 1.35-.77.07-1.36-.5-2.1-1-.16-.11-.31-.22-.44-.33-.53-.45-.48-.68.12-1.3l.03-.03c1.23-1.12 2.7-2.48 2.76-2.58.07-.11.07-.2-.05-.25s-.35-.02-.54.06c-.27.11-1.56.96-4.32 2.82-.41.28-.77.42-1.1.41-.36-.01-1.04-.21-1.55-.38-.63-.2-1.12-.31-1.08-.66.02-.18.27-.37.74-.57 2.91-1.27 4.85-2.1 5.83-2.5 2.78-1.14 3.36-1.34 3.73-1.34.08 0 .27.02.39.12a.41.41 0 0 1 .15.29c-.01.07-.02.16-.03.22z" />
+        </svg>
+      ),
+    },
+    {
+      id: "linkedin",
+      color: "bg-[#0077B5]/10 hover:bg-[#0077B5] text-[#0077B5] hover:text-white hover:shadow-[#0077B5]/25 border border-[#0077B5]/20",
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`,
+      icon: (
+        <svg className="w-4.5 h-4.5 fill-current" viewBox="0 0 24 24">
+          <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+        </svg>
+      ),
+    },
+    {
+      id: "email",
+      color: "bg-slate-600/10 hover:bg-slate-600 text-slate-700 hover:text-white hover:shadow-slate-600/25 border border-slate-600/20",
+      href: `mailto:?subject=${encodeURIComponent("qrcodegeneratorx Share")}&body=${encodeURIComponent(shareText + "\n\n" + shareUrl)}`,
+      icon: (
+        <Mail className="w-4.5 h-4.5" />
+      ),
+    },
+  ];
 
   // Show status feedback toasts
   const triggerToast = (msg: string) => {
@@ -162,12 +323,72 @@ export default function QRPreview({ data, type, config, onSaveToHistory }: QRPre
     );
   }, [data, type, config]);
 
-  // Handle PNG image downloads
-  const handleDownloadPNG = () => {
+  // Helper to safely get canvas, falling back dynamically to a clean canvas without logo if tainted
+  const getSafeCanvas = async (): Promise<HTMLCanvasElement> => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) throw new Error("No canvas element");
 
     try {
+      // Test if canvas is tainted by doing a minor read block
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.getImageData(0, 0, 1, 1);
+      }
+      return canvas;
+    } catch (e) {
+      console.warn("Canvas is tainted, generating fallback without logo...:", e);
+      const fallbackCanvas = document.createElement("canvas");
+      const size = config.resolution;
+      fallbackCanvas.width = size;
+      fallbackCanvas.height = size;
+
+      const qrData = data || "https://qrcodegeneratorx.com";
+      const qrOptions = {
+        errorCorrectionLevel: config.errorCorrectionLevel,
+        margin: config.margin !== undefined ? config.margin : 4,
+        color: {
+          dark: config.fgColor,
+          light: "#00000000",
+        },
+        width: size,
+      };
+
+      await new Promise<void>((resolve, reject) => {
+        QRCode.toCanvas(fallbackCanvas, qrData, qrOptions, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      const ctx = fallbackCanvas.getContext("2d");
+      if (ctx) {
+        if (config.isGradient && config.gradientStart && config.gradientEnd) {
+          ctx.save();
+          ctx.globalCompositeOperation = "source-in";
+          const gradient = ctx.createLinearGradient(0, 0, size, size);
+          gradient.addColorStop(0, config.gradientStart);
+          gradient.addColorStop(1, config.gradientEnd);
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, size, size);
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.globalCompositeOperation = "destination-over";
+        ctx.fillStyle = config.bgColor || "#FFFFFF";
+        ctx.fillRect(0, 0, size, size);
+        ctx.restore();
+      }
+
+      triggerToast(locale === "ar" ? "تم التحميل بنجاح بدون الشعار بسبب سياسة الأمان." : "Downloaded successfully without logo due to source security policy.");
+      return fallbackCanvas;
+    }
+  };
+
+  // Handle PNG image downloads
+  const handleDownloadPNG = async () => {
+    try {
+      const canvas = await getSafeCanvas();
       const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.download = `qrcodegeneratorx-${type}-${new Date().getTime()}.png`;
@@ -178,16 +399,31 @@ export default function QRPreview({ data, type, config, onSaveToHistory }: QRPre
       triggerToast("High-resolution PNG downloaded successfully!");
     } catch (e) {
       console.error(e);
-      triggerToast("Error downloading PNG image.");
+      try {
+        const fallbackCanvas = document.createElement("canvas");
+        await QRCode.toCanvas(fallbackCanvas, data || "https://qrcodegeneratorx.com", {
+          width: config.resolution || 272,
+          margin: 4,
+          color: { dark: config.fgColor || "#1E1B4B", light: config.bgColor || "#FFFFFF" }
+        });
+        const dataUrl = fallbackCanvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.download = `qrcodegeneratorx-${type}-${new Date().getTime()}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        triggerToast("PNG downloaded with default settings!");
+      } catch (innerError) {
+        console.error("Super fallback failed", innerError);
+        triggerToast("Error downloading PNG image.");
+      }
     }
   };
 
-  // Handle Vector SVG downloads
-  const handleDownloadSVG = () => {
-    if (!svgString) return;
-
+  const triggerDownloadSVG = (text: string) => {
     try {
-      const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+      const blob = new Blob([text], { type: "image/svg+xml;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.download = `qrcodegeneratorx-${type}-${new Date().getTime()}.svg`;
@@ -203,10 +439,61 @@ export default function QRPreview({ data, type, config, onSaveToHistory }: QRPre
     }
   };
 
+  // Handle Vector SVG downloads
+  const handleDownloadSVG = () => {
+    const qrData = data || "https://qrcodegeneratorx.com";
+    const size = config.resolution;
+
+    QRCode.toString(
+      qrData,
+      {
+        type: "svg",
+        errorCorrectionLevel: config.errorCorrectionLevel,
+        margin: config.margin !== undefined ? config.margin : 4,
+        color: {
+          dark: config.fgColor,
+          light: config.bgColor,
+        },
+        width: size,
+      },
+      (err, svgText) => {
+        if (err || !svgText) {
+          if (svgString) {
+            triggerDownloadSVG(svgString);
+          } else {
+            triggerToast("Error downloading SVG vector.");
+          }
+          return;
+        }
+
+        let processedSvg = svgText;
+        if (config.isGradient && config.gradientStart && config.gradientEnd) {
+          const gradientDef = `<defs><linearGradient id="qr-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${config.gradientStart}" /><stop offset="100%" stop-color="${config.gradientEnd}" /></linearGradient></defs>`;
+          processedSvg = svgText.replace(new RegExp(`fill="${config.fgColor}"`, "g"), `fill="url(#qr-gradient)"`);
+          if (!processedSvg.includes("id=\"qr-gradient\"")) {
+            processedSvg = processedSvg.replace(/fill="[^"]+"/g, `fill="url(#qr-gradient)"`);
+          }
+          const svgTagMatch = processedSvg.match(/<svg[^>]*>/);
+          if (svgTagMatch) {
+            const insertIndex = svgTagMatch.index! + svgTagMatch[0].length;
+            processedSvg = processedSvg.slice(0, insertIndex) + gradientDef + processedSvg.slice(insertIndex);
+          }
+        }
+        triggerDownloadSVG(processedSvg);
+      }
+    );
+  };
+
   // Handle Portable Document Format (PDF) Downloading
-  const handleDownloadPDF = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const handleDownloadPDF = async () => {
+    let canvas: HTMLCanvasElement;
+    try {
+      canvas = await getSafeCanvas();
+    } catch (e) {
+      console.error(e);
+      triggerToast("Error loading canvas.");
+      return;
+    }
 
     try {
       const imgData = canvas.toDataURL("image/jpeg", 1.0);
@@ -324,7 +611,7 @@ startxref
     <>
       <div
         ref={containerRef}
-        className="sticky top-20 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6"
+        className="relative bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6"
       >
         {/* Toast Alert message panel overlay */}
         {toastMsg && (
@@ -398,41 +685,7 @@ startxref
           </button>
         </div>
 
-        {/* Share and Cache Form Section */}
-        <div className="space-y-4 border-t border-slate-100 pt-5">
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold text-slate-400 uppercase font-mono block">
-              {t("history_label")}
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="e.g. Guest Wi-Fi setup"
-                value={historyLabel}
-                onChange={(e) => setHistoryLabel(e.target.value)}
-                className="flex-1 bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-3.5 py-2.5 text-sm outline-none font-medium text-slate-800"
-                id="history-label-input"
-              />
-              <button
-                type="button"
-                onClick={handleCacheSave}
-                className="flex items-center gap-1.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all active:scale-95 cursor-pointer"
-              >
-                <FolderDot className="w-4 h-4 text-slate-500" />
-                <span>{t("add_to_dashboard")}</span>
-              </button>
-            </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={handleShareQR}
-            className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-blue-300 hover:border-blue-500 text-blue-600 hover:text-blue-700 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors bg-blue-50/50 cursor-pointer"
-          >
-            <Share2 className="w-4 h-4" />
-            <span>{t("share_qr")}</span>
-          </button>
-        </div>
       </div>
     </>
   );

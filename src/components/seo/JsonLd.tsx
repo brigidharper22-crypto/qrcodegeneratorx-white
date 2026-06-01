@@ -1,5 +1,5 @@
 import { Locale } from "../../types";
-import { BLOG_POSTS } from "../../data/blogData";
+import { BLOG_POSTS, getBlogPostsForLocale } from "../../data/blogData";
 
 interface JsonLdProps {
   page: string;
@@ -190,7 +190,7 @@ export default function JsonLd({ page, locale, blogPostId, faqList }: JsonLdProp
       }))
     };
   } else if (page.startsWith("blog/") && blogPostId) {
-    const post = BLOG_POSTS.find((p) => p.id === blogPostId);
+    const post = getBlogPostsForLocale(locale).find((p) => p.id === blogPostId);
     pageSpecificData = {
       "@context": "https://schema.org",
       "@type": "Article",

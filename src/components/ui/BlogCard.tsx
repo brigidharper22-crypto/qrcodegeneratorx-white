@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useI18n } from "../../hooks/useI18n";
-import { BlogPost, BLOG_POSTS } from "../../data/blogData";
+import { BlogPost, BLOG_POSTS, getBlogPostsForLocale } from "../../data/blogData";
 import {
   Clock,
   Calendar,
@@ -273,7 +273,7 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
   };
 
   // 3. Extract related items (exclude the current item) - Maximize to 3 cards as requested
-  const relatedArticles = BLOG_POSTS.filter((p) => p.id !== post.id).slice(0, 3);
+  const relatedArticles = getBlogPostsForLocale(locale).filter((p) => p.id !== post.id).slice(0, 3);
 
   // Extract headings for the Table of Contents dynamically
   const headings = post.content

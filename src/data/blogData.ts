@@ -218,3 +218,6 @@ export const BLOG_POSTS: BlogPost[] = [
     ]
   }
 ];
+
+export { getBlogPostsForLocale } from "./blogTranslations";
+
