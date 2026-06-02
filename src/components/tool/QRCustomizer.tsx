@@ -464,10 +464,7 @@ export default function QRCustomizer({ config, onChange }: QRCustomizerProps) {
                   onChange={(e) => onChange({ resolution: Number(e.target.value) })}
                   className="w-full h-1.5 bg-slate-100 border border-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 />
-                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 tracking-wider">
-                  <span>128 PX (Speed)</span>
-                  <span>1024 PX (High Vector)</span>
-                </div>
+
               </div>
 
               {/* Quiet Zone / Border Thickness */}
@@ -489,9 +486,6 @@ export default function QRCustomizer({ config, onChange }: QRCustomizerProps) {
                   onChange={(e) => onChange({ margin: Number(e.target.value) })}
                   className="w-full h-1.5 bg-slate-100 border border-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 />
-                <p className="text-[11px] text-slate-400 leading-normal font-mono">
-                  {getLabel("margin_desc")}
-                </p>
               </div>
             </div>
           </div>
