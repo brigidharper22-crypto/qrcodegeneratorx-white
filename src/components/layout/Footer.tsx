@@ -1,6 +1,7 @@
 import React from "react";
 import { useI18n } from "../../hooks/useI18n";
 import { Shield, Zap, Award, Flame } from "lucide-react";
+import { Locale } from "../../types";
 
 interface FooterProps {
   onNavigate: (page: string) => void;
@@ -99,7 +100,7 @@ const FOOTER_TRANSLATIONS: Record<string, {
 };
 
 export default function Footer({ onNavigate }: FooterProps) {
-  const { t, locale } = useI18n();
+  const { t, locale, setLocale } = useI18n();
 
   const year = new Date().getFullYear();
   const fLabels = FOOTER_TRANSLATIONS[locale] || FOOTER_TRANSLATIONS.en;
@@ -165,7 +166,7 @@ export default function Footer({ onNavigate }: FooterProps) {
               {companyLinks.map((link) => (
                 <li key={link.id}>
                   <a
-                    href={`/${locale}/${link.id}`}
+                    href={link.id === "home" ? `/${locale}` : `/${locale}/${link.id}`}
                     onClick={(e) => handleLinkClick(e, link.id)}
                     className="text-slate-400 hover:text-white transition-colors cursor-pointer"
                   >
@@ -213,7 +214,7 @@ export default function Footer({ onNavigate }: FooterProps) {
               <button
                 key={lang}
                 onClick={() => {
-                  window.location.pathname = `/${lang}`;
+                  setLocale(lang as Locale);
                 }}
                 className={`uppercase px-2 py-0.5 rounded border border-slate-800 text-[10px] hover:text-slate-300 hover:border-slate-700 font-mono transition-colors cursor-pointer ${
                   locale === lang ? "text-blue-400 border-blue-900/40 font-bold bg-blue-950/20" : "text-slate-500"
