@@ -12,7 +12,14 @@ export default function QRCustomizer({ config, onChange }: QRCustomizerProps) {
   const { locale, t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [logoName, setLogoName] = useState<string>("");
-  const [activeAccordion, setActiveAccordion] = useState<string | null>("customize");
+  const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Keep closed on mobile by default to improve layout density, and open on desktop
+    if (window.innerWidth >= 1024) {
+      setActiveAccordion("customize");
+    }
+  }, []);
 
   // Premium presets with beautiful foreground gradients showing "gradient colors in the small boxes/squares"
   const presets: QRPreset[] = [
