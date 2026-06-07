@@ -547,8 +547,8 @@ export default function App() {
       title = locale === "ar" ? "الأسئلة الشائعة وتكنولوجيا رموز الاستجابة السريعة" : "Frequently Asked Questions | QR Code Technology Info";
       desc = locale === "ar" ? "دليل إجابات الخبراء الشامل حول تصميم أكواد QR الثابتة وصلاحيتها وتشفيرها." : "Read comprehensive expert answers regarding static vs dynamic matrix patterns, SSID WiFi parameters, and Reed-Solomon scales.";
     } else if (currentPage === "blog") {
-      title = locale === "ar" ? "المدونة المهنية وأفضل ممارسات التسويق والتصميم" : "Guides, Tutorials and Business Industry Best Practices | Our Blog";
-      desc = locale === "ar" ? "اقرأ أدلة وكلتبات خبرائنا حول توظيف الكود في المطاعم والشركات بجودة طباعة مثالية." : "Read our expert marketing guides, business design tutorials, and industrial optimization studies regarding QR data matrix formats.";
+      title = locale === "ar" ? "المدونة المهنية وأفضل ممارسات التسويق والتصميم" : "QR Code Blog & Guides | qrcodegeneratorx.com";
+      desc = locale === "ar" ? "اقرأ أدلة وكلتبات خبرائنا حول توظيف الكود في المطاعم والشركات بجودة طباعة مثالية." : "Free tutorials, guides and tips on how to use QR codes for restaurants, business cards, real estate and more.";
     } else if (currentPage === "privacy-policy") {
       title = locale === "ar" ? "سياسة الخصوصية وأمان البيانات محلياً للمستخدم" : "Privacy Policy | Absolute Local Data Security Assurance";
       desc = locale === "ar" ? "راجع تفاصيل الأمان للتأكيد على أن البيانات تعالج في متصفحك محلياً بالكامل ولا ترفع لخوادمنا." : "Review our detailed privacy statements confirming 100% browser-native data local compilation with zero server collections.";
