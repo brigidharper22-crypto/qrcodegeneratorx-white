@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback, Fragment } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useI18n, SUPPORTED_LOCALES } from "./hooks/useI18n";
 import { Locale } from "./types";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import { MediavineAdScript, AdSlot, AD_PLACEMENTS } from "./components/ads/MediavineAd";
-import { AdSenseAd } from "./components/ads/AdSenseAd";
 import JsonLd from "./components/seo/JsonLd";
 import QRGenerator from "./components/tool/QRGenerator";
 import FAQAccordion from "./components/ui/FAQAccordion";
@@ -548,8 +547,8 @@ export default function App() {
       title = locale === "ar" ? "الأسئلة الشائعة وتكنولوجيا رموز الاستجابة السريعة" : "Frequently Asked Questions | QR Code Technology Info";
       desc = locale === "ar" ? "دليل إجابات الخبراء الشامل حول تصميم أكواد QR الثابتة وصلاحيتها وتشفيرها." : "Read comprehensive expert answers regarding static vs dynamic matrix patterns, SSID WiFi parameters, and Reed-Solomon scales.";
     } else if (currentPage === "blog") {
-      title = locale === "ar" ? "المدونة المهنية وأفضل ممارسات التسويق والتصميم" : "QR Code Blog & Guides | qrcodegeneratorx.com";
-      desc = locale === "ar" ? "اقرأ أدلة وكلتبات خبرائنا حول توظيف الكود في المطاعم والشركات بجودة طباعة مثالية." : "Free tutorials, guides and tips on how to use QR codes for restaurants, business cards, real estate and more.";
+      title = locale === "ar" ? "المدونة المهنية وأفضل ممارسات التسويق والتصميم" : "Guides, Tutorials and Business Industry Best Practices | Our Blog";
+      desc = locale === "ar" ? "اقرأ أدلة وكلتبات خبرائنا حول توظيف الكود في المطاعم والشركات بجودة طباعة مثالية." : "Read our expert marketing guides, business design tutorials, and industrial optimization studies regarding QR data matrix formats.";
     } else if (currentPage === "privacy-policy") {
       title = locale === "ar" ? "سياسة الخصوصية وأمان البيانات محلياً للمستخدم" : "Privacy Policy | Absolute Local Data Security Assurance";
       desc = locale === "ar" ? "راجع تفاصيل الأمان للتأكيد على أن البيانات تعالج في متصفحك محلياً بالكامل ولا ترفع لخوادمنا." : "Review our detailed privacy statements confirming 100% browser-native data local compilation with zero server collections.";
@@ -665,8 +664,6 @@ export default function App() {
                   <QRGenerator initialPayloadFromUrl={sharedPayload} />
                 </section>
 
-                <AdSenseAd adSlot="AUTO" />
-
                 {/* AD SLOT 1: Below Hero & Tool section */}
                 <AdSlot placement={AD_PLACEMENTS.heroLeaderboard} />
 
@@ -734,8 +731,6 @@ export default function App() {
                 {/* AD SLOT 3: Between Features and Testimonials */}
                 <AdSlot placement={AD_PLACEMENTS.betweenSections2} />
 
-                <AdSenseAd adSlot="AUTO" />
-
                 {/* SECTION: Social Testimonials */}
                 <section className="bg-blue-50/50 border border-blue-105 rounded-3xl p-8 sm:p-12 space-y-10">
                   <div className="text-center space-y-3">
@@ -761,8 +756,6 @@ export default function App() {
                     ))}
                   </div>
                 </section>
-
-                <AdSenseAd adSlot="AUTO" />
 
                 {/* SECTION: FAQ Quick Preview Block */}
                 <section className="space-y-10">
@@ -883,14 +876,11 @@ export default function App() {
                   <p className="text-sm sm:text-base text-slate-500 leading-relaxed font-normal">
                     {hTrans.faqIndexDesc}
                   </p>
-                  <AdSenseAd adSlot="AUTO" />
                 </div>
 
                 <div className="bg-white border border-slate-150 rounded-2xl p-6 md:p-8 shadow-sm">
                   <FAQAccordion />
                 </div>
-
-                <AdSenseAd adSlot="AUTO" />
               </div>
             )}
 
@@ -907,24 +897,13 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Position 1: Before the first blog card */}
-                  <div className="col-span-1 md:col-span-2 lg:col-span-3">
-                    <AdSenseAd adSlot="AUTO" />
-                  </div>
-
-                  {/* Render all articles with inline AdSenseAd placements after every 3 cards */}
-                  {getBlogPostsForLocale(locale).map((post, i) => (
-                    <Fragment key={post.id}>
-                      <BlogCard
-                        post={post}
-                        onClick={() => handleNav(`blog/${post.id}`)}
-                      />
-                      {(i + 1) % 3 === 0 && (
-                        <div className="col-span-1 md:col-span-2 lg:col-span-3">
-                          <AdSenseAd adSlot="AUTO" />
-                        </div>
-                      )}
-                    </Fragment>
+                  {/* Render all articles */}
+                  {getBlogPostsForLocale(locale).map((post) => (
+                    <BlogCard
+                      key={post.id}
+                      post={post}
+                      onClick={() => handleNav(`blog/${post.id}`)}
+                    />
                   ))}
                   <noscript>
                     <div className="hidden" style={{ display: "none" }}>

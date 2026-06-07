@@ -19,7 +19,6 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { AdSlot, AD_PLACEMENTS } from "../ads/MediavineAd";
-import { AdSenseAd } from "../ads/AdSenseAd";
 
 interface BlogCardProps {
   post: BlogPost;
@@ -485,64 +484,49 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
 
         {/* Rich article paragraph blocks with custom renders */}
         <div className="space-y-6 text-slate-700 text-base md:text-lg leading-relaxed font-normal">
-          {(() => {
-            const firstH2Index = post.content.findIndex((p) => p.startsWith("H2: "));
-            const middleIndex = Math.floor(post.content.length / 2);
-            return post.content.map((paragraph, index) => {
-              const isH2 = paragraph.startsWith("H2: ");
-              const isCodeBlock = paragraph.startsWith("```");
+          {post.content.map((paragraph, index) => {
+            const isH2 = paragraph.startsWith("H2: ");
+            const isCodeBlock = paragraph.startsWith("```");
 
-              const showAdSense1 = isH2 && index === firstH2Index;
-              const showAdSense2 = index === middleIndex;
-              const showAdSense3 = index === post.content.length - 1;
-
+            if (isH2) {
+              const h2Title = paragraph.replace(/^H2:\s*/, "");
               return (
-                <React.Fragment key={index}>
-                  {showAdSense1 && (
-                    <div className="my-6">
-                      <AdSenseAd adSlot="AUTO" />
-                    </div>
-                  )}
-                  {showAdSense2 && (
-                    <div className="my-6">
-                      <AdSenseAd adSlot="AUTO" />
-                    </div>
-                  )}
-
-                  {isH2 ? (
-                    <h2
-                      id={`section-${index}`}
-                      className="text-xl md:text-2xl font-extrabold font-display text-slate-930 pt-6 mt-8 border-t border-slate-100 flex items-center gap-2.5 scroll-mt-24"
-                    >
-                      <BookOpen className="w-5.5 h-5.5 text-blue-600 shrink-0" />
-                      <span>{paragraph.replace(/^H2:\s*/, "")}</span>
-                    </h2>
-                  ) : isCodeBlock ? (
-                    <pre className="bg-slate-900 text-slate-100 rounded-xl p-4 md:p-6 font-mono text-xs md:text-sm overflow-x-auto shadow-inner leading-relaxed border border-slate-850">
-                      <code>{paragraph.replace(/```text\n|```/g, "")}</code>
-                    </pre>
-                  ) : (
-                    <div className="space-y-4">
-                      <p>{renderParagraphWithLinks(paragraph, onNavigate)}</p>
-
-                      {/* Ad Placement 1: Mediavine In-Content Mid (after the 3rd paragraph block) */}
-                      {index === 2 && (
-                        <div className="my-8 justify-center flex">
-                          <AdSlot placement={AD_PLACEMENTS.blogMid} className="py-2 w-full" />
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {showAdSense3 && (
-                    <div className="my-6">
-                      <AdSenseAd adSlot="AUTO" />
-                    </div>
-                  )}
-                </React.Fragment>
+                <h2
+                  key={index}
+                  id={`section-${index}`}
+                  className="text-xl md:text-2xl font-extrabold font-display text-slate-930 pt-6 mt-8 border-t border-slate-100 flex items-center gap-2.5 scroll-mt-24"
+                >
+                  <BookOpen className="w-5.5 h-5.5 text-blue-600 shrink-0" />
+                  <span>{h2Title}</span>
+                </h2>
               );
-            });
-          })()}
+            }
+
+            if (isCodeBlock) {
+              const cleanCode = paragraph.replace(/```text\n|```/g, "");
+              return (
+                <pre
+                  key={index}
+                  className="bg-slate-900 text-slate-100 rounded-xl p-4 md:p-6 font-mono text-xs md:text-sm overflow-x-auto shadow-inner leading-relaxed border border-slate-850"
+                >
+                  <code>{cleanCode}</code>
+                </pre>
+              );
+            }
+
+            return (
+              <div key={index} className="space-y-4">
+                <p>{renderParagraphWithLinks(paragraph, onNavigate)}</p>
+
+                {/* Ad Placement 1: Mediavine In-Content Mid (after the 3rd paragraph block) */}
+                {index === 2 && (
+                  <div className="my-8 justify-center flex">
+                    <AdSlot placement={AD_PLACEMENTS.blogMid} className="py-2 w-full" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {/* Ad Placement 2: Mediavine In-Content Bottom (placed precisely at the end of the post content) */}
           <div className="my-8 justify-center flex">

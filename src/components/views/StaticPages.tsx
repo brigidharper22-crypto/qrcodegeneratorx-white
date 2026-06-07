@@ -1,7 +1,6 @@
 import { useI18n } from "../../hooks/useI18n";
 import { Link, CheckCircle, Shield, Award, Users, ArrowUpRight, Cpu } from "lucide-react";
 import { AdSlot, AD_PLACEMENTS } from "../ads/MediavineAd";
-import { AdSenseAd } from "../ads/AdSenseAd";
 
 // --- HOW IT WORKS LANGUAGE DICTIONARY ---
 const HOW_IT_WORKS_CONTENT: Record<string, {
@@ -487,7 +486,6 @@ export function HowItWorksView() {
         <p className="text-base md:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
           {content.subtitle}
         </p>
-        <AdSenseAd adSlot="AUTO" />
       </div>
 
       {/* 3 Step Card Grids */}
@@ -528,7 +526,6 @@ export function HowItWorksView() {
           <Cpu className="w-16 h-16 text-blue-600 animate-pulse" />
         </div>
       </div>
-      <AdSenseAd adSlot="AUTO" />
     </div>
   );
 }
@@ -549,7 +546,6 @@ export function FeaturesView() {
         <p className="text-base md:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
           {content.subtitle}
         </p>
-        <AdSenseAd adSlot="AUTO" />
       </div>
 
       {/* Grid container */}
@@ -569,7 +565,6 @@ export function FeaturesView() {
       </div>
 
       <AdSlot placement={AD_PLACEMENTS.betweenSections2} />
-      <AdSenseAd adSlot="AUTO" />
     </div>
   );
 }
@@ -585,7 +580,6 @@ export function PrivacyPolicyView() {
         {content.title}
       </h1>
       <p className="text-xs text-slate-400 font-mono">{content.lastUpdated}</p>
-      <AdSenseAd adSlot="AUTO" />
 
       <div className="space-y-4 text-sm md:text-base leading-relaxed">
         <p>
@@ -610,7 +604,6 @@ export function PrivacyPolicyView() {
           {content.p3}
         </p>
       </div>
-      <AdSenseAd adSlot="AUTO" />
     </div>
   );
 }
@@ -626,7 +619,6 @@ export function TermsView() {
         {content.title}
       </h1>
       <p className="text-xs text-slate-400 font-mono">{content.lastUpdated}</p>
-      <AdSenseAd adSlot="AUTO" />
 
       <div className="space-y-4 text-sm md:text-base leading-relaxed">
         <h3 className="text-lg font-bold font-display text-slate-900">{content.h1}</h3>
@@ -649,7 +641,6 @@ export function TermsView() {
           {content.p4}
         </p>
       </div>
-      <AdSenseAd adSlot="AUTO" />
     </div>
   );
 }
