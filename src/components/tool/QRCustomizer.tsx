@@ -542,6 +542,8 @@ export default function QRCustomizer({ config, onChange }: QRCustomizerProps) {
                         alt="Logo Preview"
                         className="w-full h-full object-contain"
                         referrerPolicy="no-referrer"
+                        width={36}
+                        height={36}
                       />
                     </div>
                     <div>

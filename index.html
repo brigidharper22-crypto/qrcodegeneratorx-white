@@ -46,8 +46,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://scripts.mediavine.com" />
+    <!-- Preload Critical CSS -->
+    <link rel="preload" href="/src/index.css" as="style">
     <!-- Global Mediavine Journey Script Placement -->
-    <script src="https://scripts.mediavine.com/tags/qrcodegeneratorx.js" defer type="text/javascript"></script>
+    <script>
+      window.addEventListener('load', function() {
+        if (!document.getElementById("mediavine-journey-script")) {
+          var s = document.createElement('script');
+          s.id = 'mediavine-journey-script';
+          s.src = 'https://scripts.mediavine.com/tags/qrcodegeneratorx.js';
+          s.async = true;
+          document.head.appendChild(s);
+        }
+      });
+    </script>
 
     <!-- Static Fallback SEO Meta Tags -->
     <meta name="description" content="Free QR Code Generator — create custom QR codes for URLs, WiFi, email, contacts and more. Download as SVG, PNG or PDF instantly.">

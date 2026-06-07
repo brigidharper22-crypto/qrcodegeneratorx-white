@@ -122,13 +122,26 @@ export function MediavineAdScript() {
     // Prevent duplicate injection
     if (document.getElementById("mediavine-journey-script")) return;
 
-    const script = document.createElement("script");
-    script.id = "mediavine-journey-script";
-    script.src = "https://scripts.mediavine.com/tags/qrcodegeneratorx.js";
-    script.defer = true;
-    script.type = "text/javascript";
+    const injectScript = () => {
+      if (document.getElementById("mediavine-journey-script")) return;
+      
+      const script = document.createElement("script");
+      script.id = "mediavine-journey-script";
+      script.src = "https://scripts.mediavine.com/tags/qrcodegeneratorx.js";
+      script.async = true;
+      script.type = "text/javascript";
 
-    document.head.appendChild(script);
+      document.head.appendChild(script);
+    };
+
+    if (document.readyState === "complete") {
+      injectScript();
+    } else {
+      window.addEventListener("load", injectScript);
+      return () => {
+        window.removeEventListener("load", injectScript);
+      };
+    }
   }, []);
 
   return null;

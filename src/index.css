@@ -114,4 +114,10 @@ h1, h2, h3, .font-display {
   border: none !important;
 }
 
+/* Reduce layout shift (CLS) for ad container elements */
+.ad-container {
+  min-height: 250px;
+  width: 100%;
+}
+
 
