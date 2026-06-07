@@ -1,5 +1,6 @@
 import { Locale } from "../../types";
-import { BLOG_POSTS, getBlogPostsForLocale } from "../../data/blogData";
+import { BLOG_POSTS } from "../../data/blogData";
+import { getBlogPostsForLocale } from "../../data/blogTranslations";
 
 interface JsonLdProps {
   page: string;

@@ -31,8 +31,12 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo brand */}
-          <button
-            onClick={() => handleNavClick("home")}
+          <a
+            href={`/${locale}`}
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavClick("home");
+            }}
             className="flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg p-1.5 cursor-pointer"
             aria-label="qrcodegeneratorx Home"
           >
@@ -43,23 +47,31 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
                 <span className="ml-1 text-xs px-1.5 py-0.5 rounded-md bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-black uppercase tracking-wider shadow-sm shadow-blue-500/15">X</span>
               </span>
             </div>
-          </button>
+          </a>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1.5" aria-label="Main Navigation">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer ${
-                  currentPage === item.id || (item.id === "home" && currentPage.startsWith("blog/"))
-                    ? "bg-blue-50 text-blue-600 font-semibold"
-                    : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
+            {navItems.map((item) => {
+              const pathSuffix = item.id === "home" ? "" : `/${item.id}`;
+              const href = `/${locale}${pathSuffix}`;
+              return (
+                <a
+                  key={item.id}
+                  href={href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavClick(item.id);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer inline-block ${
+                    currentPage === item.id || (item.id === "home" && currentPage.startsWith("blog/"))
+                      ? "bg-blue-50 text-blue-600 font-semibold"
+                      : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {item.label}
+                </a>
+              );
+            })}
           </nav>
 
           {/* Actions & Language Selector */}
@@ -120,12 +132,16 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
             </div>
 
             {/* Launch Call To Action */}
-            <button
-              onClick={() => handleNavClick("home")}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-500/10 transition-transform active:scale-95 cursor-pointer"
+            <a
+              href={`/${locale}`}
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavClick("home");
+              }}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-500/10 transition-transform active:scale-95 cursor-pointer inline-block text-center"
             >
               Create QR Code
-            </button>
+            </a>
           </div>
 
           {/* Mobile menu and Language triggers */}
@@ -182,28 +198,40 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-zinc-100 bg-white">
           <div className="px-4 py-3 space-y-1">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                  currentPage === item.id || (item.id === "home" && currentPage.startsWith("blog/"))
-                    ? "bg-blue-50 text-blue-600 font-semibold"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"
-                }`}
-                style={{ textAlign: isRTL ? "right" : "left" }}
-              >
-                {item.label}
-              </button>
-            ))}
+            {navItems.map((item) => {
+              const pathSuffix = item.id === "home" ? "" : `/${item.id}`;
+              const href = `/${locale}${pathSuffix}`;
+              return (
+                <a
+                  key={item.id}
+                  href={href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavClick(item.id);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer block ${
+                    currentPage === item.id || (item.id === "home" && currentPage.startsWith("blog/"))
+                      ? "bg-blue-50 text-blue-600 font-semibold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"
+                  }`}
+                  style={{ textAlign: isRTL ? "right" : "left" }}
+                >
+                  {item.label}
+                </a>
+              );
+            })}
           </div>
           <div className="px-4 py-4 border-t border-zinc-100 bg-zinc-50 flex flex-col gap-2">
-            <button
-              onClick={() => handleNavClick("home")}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-600 active:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-md text-center cursor-pointer"
+            <a
+              href={`/${locale}`}
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavClick("home");
+              }}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-600 active:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-md text-center cursor-pointer block"
             >
               Start Generating QR
-            </button>
+            </a>
           </div>
         </div>
       )}

@@ -8,7 +8,8 @@ import JsonLd from "./components/seo/JsonLd";
 import QRGenerator from "./components/tool/QRGenerator";
 import FAQAccordion from "./components/ui/FAQAccordion";
 import { BlogCard, BlogPostDetail } from "./components/ui/BlogCard";
-import { BLOG_POSTS, getBlogPostsForLocale } from "./data/blogData";
+import { BLOG_POSTS } from "./data/blogData";
+import { getBlogPostsForLocale } from "./data/blogTranslations";
 import {
   HowItWorksView,
   FeaturesView,
@@ -559,16 +560,18 @@ export default function App() {
     // Set Document title
     document.title = title;
 
-    // Set Meta Description dynamically in head
-    let metaDescEl = document.querySelector('meta[name="description"]');
-    if (!metaDescEl) {
-      metaDescEl = document.createElement("meta");
-      metaDescEl.setAttribute("name", "description");
-      document.head.appendChild(metaDescEl);
-    }
-    metaDescEl.setAttribute("content", desc);
+    // Helper to query or create metadata tags cleanly for flawless SEO coverage
+    const setMetaTag = (selector: string, attrName: string, attrVal: string, contentVal: string) => {
+      let el = document.querySelector(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attrName, attrVal);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", contentVal);
+    };
 
-    // Set Canonical link tag dynamically in head
+    // Set canonical link tag dynamically in head
     let canonicalEl = document.querySelector('link[rel="canonical"]');
     if (!canonicalEl) {
       canonicalEl = document.createElement("link");
@@ -577,13 +580,42 @@ export default function App() {
     }
     canonicalEl.setAttribute("href", canonicalUrl);
 
-    // Set OpenGraph meta title and description too if needed
-    let ogTitleEl = document.querySelector('meta[property="og:title"]');
-    if (ogTitleEl) ogTitleEl.setAttribute("content", title);
-    let ogDescEl = document.querySelector('meta[property="og:description"]');
-    if (ogDescEl) ogDescEl.setAttribute("content", desc);
-    let ogUrlEl = document.querySelector('meta[property="og:url"]');
-    if (ogUrlEl) ogUrlEl.setAttribute("content", canonicalUrl);
+    // og:image fallback URL
+    let ogImage = "https://qrcodegeneratorx.com/og-image.png";
+    if (activeBlogPost && (activeBlogPost as any).image) {
+      ogImage = (activeBlogPost as any).image;
+    }
+
+    // Task 3: Setup dynamic OpenGraph and Twitter cards (creating them if they are missing in head)
+    setMetaTag('meta[name="description"]', 'name', 'description', desc);
+    setMetaTag('meta[property="og:title"]', 'property', 'og:title', title);
+    setMetaTag('meta[property="og:description"]', 'property', 'og:description', desc);
+    setMetaTag('meta[property="og:url"]', 'property', 'og:url', canonicalUrl);
+    setMetaTag('meta[property="og:image"]', 'property', 'og:image', ogImage);
+    setMetaTag('meta[name="twitter:title"]', 'name', 'twitter:title', title);
+    setMetaTag('meta[name="twitter:description"]', 'name', 'twitter:description', desc);
+    setMetaTag('meta[name="twitter:image"]', 'name', 'twitter:image', ogImage);
+
+    // Task 1: Alternate Hreflangs dynamic management
+    const existingHreflangs = document.querySelectorAll('link[rel="alternate"][hreflang]');
+    existingHreflangs.forEach((el) => el.remove());
+
+    const supportedLocalesList = ['en', 'fr', 'es', 'ar', 'de', 'zh', 'pt', 'ja'];
+    const routePath = currentPage === "home" ? "" : `/${currentPage}`;
+
+    supportedLocalesList.forEach((loc) => {
+      const linkEl = document.createElement("link");
+      linkEl.setAttribute("rel", "alternate");
+      linkEl.setAttribute("hreflang", loc);
+      linkEl.setAttribute("href", `https://qrcodegeneratorx.com/${loc}${routePath}`);
+      document.head.appendChild(linkEl);
+    });
+
+    const xDefaultEl = document.createElement("link");
+    xDefaultEl.setAttribute("rel", "alternate");
+    xDefaultEl.setAttribute("hreflang", "x-default");
+    xDefaultEl.setAttribute("href", `https://qrcodegeneratorx.com/en${routePath}`);
+    document.head.appendChild(xDefaultEl);
   }, [currentPage, activeBlogPost, locale]);
 
   return (
@@ -783,6 +815,15 @@ export default function App() {
                         onClick={() => handleNav(`blog/${post.id}`)}
                       />
                     ))}
+                    <noscript>
+                      <div className="hidden" style={{ display: "none" }}>
+                        {getBlogPostsForLocale(locale).map((post) => (
+                          <a key={post.id} href={`/${locale}/blog/${post.id}`}>
+                            {post.title}
+                          </a>
+                        ))}
+                      </div>
+                    </noscript>
                   </div>
                 </section>
 
@@ -864,6 +905,15 @@ export default function App() {
                       onClick={() => handleNav(`blog/${post.id}`)}
                     />
                   ))}
+                  <noscript>
+                    <div className="hidden" style={{ display: "none" }}>
+                      {getBlogPostsForLocale(locale).map((post) => (
+                        <a key={post.id} href={`/${locale}/blog/${post.id}`}>
+                          {post.title}
+                        </a>
+                      ))}
+                    </div>
+                  </noscript>
                 </div>
               </div>
             )}

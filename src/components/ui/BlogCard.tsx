@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useI18n } from "../../hooks/useI18n";
-import { BlogPost, BLOG_POSTS, getBlogPostsForLocale } from "../../data/blogData";
+import { BlogPost, BLOG_POSTS } from "../../data/blogData";
+import { getBlogPostsForLocale } from "../../data/blogTranslations";
 import {
   Clock,
   Calendar,
