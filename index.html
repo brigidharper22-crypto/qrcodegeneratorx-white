@@ -56,6 +56,66 @@
     <link rel="preconnect" href="https://scripts.mediavine.com" />
     <!-- Preload Critical CSS -->
     <link rel="preload" href="/src/index.css" as="style">
+    <link rel="modulepreload" href="/src/main.tsx" />
+    <style>
+      /* ABOVE-THE-FOLD CRITICAL CSS */
+      :root {
+        --font-display: "Syne", sans-serif;
+        --font-body: "Plus Jakarta Sans", sans-serif;
+      }
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: #ffffff;
+        color: #0f172a;
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      #root {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      nav {
+        height: 64px;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        background-color: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid #f1f5f9;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      #main-content {
+        flex: 1;
+        width: 100%;
+        max-width: 80rem;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 2.5rem 1rem;
+      }
+      @media (min-width: 640px) {
+        #main-content {
+          padding-left: 1.5rem;
+          padding-right: 1.5rem;
+        }
+      }
+      @media (min-width: 1024px) {
+        #main-content {
+          padding-left: 2rem;
+          padding-right: 2rem;
+        }
+      }
+      .bg-dot-grid {
+        background-image: radial-gradient(#e2e8f0 1.2px, transparent 1.2px);
+        background-size: 24px 24px;
+        background-color: #ffffff;
+      }
+    </style>
     <!-- Global Mediavine Journey Script Placement
     <script>
       window.addEventListener('load', function() {
@@ -99,7 +159,30 @@
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W3H78RK9"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
-    <div id="root"></div>
+    <div id="root">
+      <div style="
+        display:flex;
+        flex-direction:column;
+        min-height:100vh;
+        background:#0f172a;
+        font-family:sans-serif;
+      ">
+        <div style="height:64px;background:#1e293b;width:100%"></div>
+        <div style="flex:1;display:flex;align-items:center;
+                    justify-content:center;padding:2rem">
+          <div style="text-align:center;color:#94a3b8">
+            <div style="width:48px;height:48px;border:3px solid #3b82f6;
+                        border-top-color:transparent;border-radius:50%;
+                        animation:spin 0.8s linear infinite;margin:0 auto 1rem">
+            </div>
+            <p style="margin:0;font-size:0.9rem">Loading QR Generator...</p>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes spin{to{transform:rotate(360deg)}}
+      </style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
