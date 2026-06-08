@@ -1,60 +1,50 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from "react";
 
-export function AdSenseAd({ adSlot = "AUTO" }: { adSlot?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !loaded) {
-          // Load AdSense script only when ad is visible
-          if (!(window as any).adsbygoogleLoaded) {
-            const script = document.createElement('script');
-            script.async = true;
-            script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8349675226743692';
-            script.crossOrigin = 'anonymous';
-            script.onload = () => {
-              (window as any).adsbygoogleLoaded = true;
-              try {
-                ((window as any).adsbygoogle = 
-                  (window as any).adsbygoogle || []).push({});
-              } catch (e) {}
-            };
-            document.head.appendChild(script);
-          } else {
-            try {
-              ((window as any).adsbygoogle = 
-                (window as any).adsbygoogle || []).push({});
-            } catch (e) {}
-          }
-          setLoaded(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '400px' }
-    );
-
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [loaded]);
-
-  const slotId = adSlot === "AUTO" ? "8179247169" : adSlot;
-
-  return (
-    <div ref={ref} style={{ minHeight: '100px', margin: '2rem auto' }}>
-      {loaded && (
-        <ins
-          className="adsbygoogle"
-          style={{ display: 'block' }}
-          data-ad-client="ca-pub-8349675226743692"
-          data-ad-slot={slotId}
-          data-ad-format="auto"
-          data-full-width-responsive="true"
-        />
-      )}
-    </div>
-  );
+interface AdSenseAdProps {
+  adSlot?: string;
+  style?: React.CSSProperties;
 }
 
-export default AdSenseAd;
+export function AdSenseAd({ adSlot = "AUTO", style = {} }: AdSenseAdProps) {
+  const adRef = useRef<HTMLModElement>(null);
+
+  useEffect(() => {
+    if (!adRef.current) return;
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          try {
+            ((window as any).adsbygoogle = 
+              (window as any).adsbygoogle || []).push({});
+          } catch (e) {}
+          observer.disconnect();
+        }
+      });
+    }, { rootMargin: '200px' });
+    
+    observer.observe(adRef.current);
+    
+    return () => observer.disconnect();
+  }, []);
+
+  const mergedStyle: React.CSSProperties = {
+    display: 'block', 
+    margin: '2rem auto',
+    textAlign: 'center',
+    minHeight: '100px',
+    ...style
+  };
+
+  return (
+    <ins
+      ref={adRef}
+      className="adsbygoogle"
+      style={mergedStyle}
+      data-ad-client="ca-pub-8349675226743692"
+      data-ad-slot={adSlot === "AUTO" ? "8179247169" : adSlot}
+      data-ad-format="auto"
+      data-full-width-responsive="true"
+    />
+  );
+}
