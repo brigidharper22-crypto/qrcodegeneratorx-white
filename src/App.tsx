@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Fragment, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { useI18n, SUPPORTED_LOCALES } from "./hooks/useI18n";
 import { Locale } from "./types";
 import Navbar from "./components/layout/Navbar";
@@ -6,18 +6,17 @@ import Footer from "./components/layout/Footer";
 import { MediavineAdScript, AdSlot, AD_PLACEMENTS } from "./components/ads/MediavineAd";
 import { AdSenseAd } from "./components/ads/AdSenseAd";
 import JsonLd from "./components/seo/JsonLd";
+import QRGenerator from "./components/tool/QRGenerator";
 import FAQAccordion from "./components/ui/FAQAccordion";
+import { BlogCard, BlogPostDetail } from "./components/ui/BlogCard";
 import { BLOG_POSTS } from "./data/blogData";
 import { getBlogPostsForLocale } from "./data/blogTranslations";
-
-const QRGenerator = lazy(() => import("./components/tool/QRGenerator"));
-const BlogCard = lazy(() => import("./components/ui/BlogCard").then(m => ({ default: m.BlogCard })));
-const BlogPostDetail = lazy(() => import("./components/ui/BlogCard").then(m => ({ default: m.BlogPostDetail })));
-
-const HowItWorksView = lazy(() => import("./components/views/StaticPages").then(m => ({ default: m.HowItWorksView })));
-const FeaturesView = lazy(() => import("./components/views/StaticPages").then(m => ({ default: m.FeaturesView })));
-const PrivacyPolicyView = lazy(() => import("./components/views/StaticPages").then(m => ({ default: m.PrivacyPolicyView })));
-const TermsView = lazy(() => import("./components/views/StaticPages").then(m => ({ default: m.TermsView })));
+import {
+  HowItWorksView,
+  FeaturesView,
+  PrivacyPolicyView,
+  TermsView,
+} from "./components/views/StaticPages";
 import { motion, AnimatePresence } from "motion/react";
 import {
   QrCode,
@@ -633,15 +632,14 @@ export default function App() {
 
       {/* Dynamic Main Body Content blocks */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10" id="main-content">
-        <Suspense fallback={null}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentPage}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-            >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentPage}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+          >
             {/* VIEW 1: HOME PAGE (Tool + Full landings structure) */}
             {currentPage === "home" && (
               <div className="space-y-16">
@@ -953,8 +951,7 @@ export default function App() {
             {currentPage === "terms" && <TermsView />}
           </motion.div>
         </AnimatePresence>
-      </Suspense>
-    </main>
+      </main>
 
       {/* Main Footer footer navigation bar */}
       <Footer onNavigate={handleNav} />
