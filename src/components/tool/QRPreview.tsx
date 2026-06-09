@@ -604,10 +604,18 @@ export default function QRPreview({ data, type, config, onSaveToHistory }: QRPre
               boxShadow: scaleTrigger ? "0 10px 30px -10px rgba(37,99,235,0.12)" : "none",
             }}
           >
-            <canvas
-              ref={canvasRef}
-              className="w-full h-full object-contain rounded-lg transition-transform duration-300 hover:scale-[1.01]"
-            />
+            <div style={{
+              width: "272px",
+              height: "272px",
+              minWidth: "272px",
+              minHeight: "272px",
+              position: "relative"
+            }}>
+              <canvas
+                ref={canvasRef}
+                className="w-full h-full object-contain rounded-lg transition-transform duration-300 hover:scale-[1.01]"
+              />
+            </div>
           </div>
           {data && (
             <div className="mt-4.5 text-center text-[10px] text-zinc-400 font-mono tracking-wider flex items-center gap-1">

@@ -3,30 +3,44 @@
   src: url('/fonts/syne-400.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 @font-face {
   font-family: 'Syne';
   src: url('/fonts/syne-700.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 @font-face {
   font-family: 'Plus Jakarta Sans';
   src: url('/fonts/plus-jakarta-sans-400.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 @font-face {
   font-family: 'Plus Jakarta Sans';
   src: url('/fonts/plus-jakarta-sans-600.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 @import "tailwindcss";
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.adsbygoogle,
+.ad-container,
+ins.adsbygoogle {
+  display: block !important;
+  min-height: 250px !important;
+  min-width: 300px !important;
+  width: 100% !important;
+}
 
 @theme {
   --font-display: "Syne", sans-serif;
@@ -141,15 +155,6 @@ h1, h2, h3, .font-display {
   border: none !important;
 }
 
-/* Reduce layout shift (CLS) for ad container elements */
-.ad-container {
-  min-height: 250px;
-  width: 100%;
-}
 
-.adsbygoogle {
-  min-height: 100px;
-  display: block;
-}
 
 
