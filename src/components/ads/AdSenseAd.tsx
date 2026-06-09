@@ -6,6 +6,8 @@ interface AdSenseAdProps {
 }
 
 export function AdSenseAd({ adSlot = "AUTO", style = {} }: AdSenseAdProps) {
+  return null; // Temporarily hidden pending AdSense approval
+
   const adRef = useRef<HTMLModElement>(null);
 
   useEffect(() => {
