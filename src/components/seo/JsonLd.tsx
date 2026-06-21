@@ -20,7 +20,7 @@ export default function JsonLd({ page, locale, blogPostId, faqList }: JsonLdProp
     "@id": `${rootUrl}/#organization`,
     "name": "qrcodegeneratorx",
     "url": rootUrl,
-    "logo": `${rootUrl}/favicon.svg`,
+    "logo": `${rootUrl}/favicon-192x192.png`,
     "sameAs": ["https://twitter.com/qrcodegeneratorx"],
   };
 
@@ -204,7 +204,7 @@ export default function JsonLd({ page, locale, blogPostId, faqList }: JsonLdProp
         "name": "qrcodegeneratorx",
         "logo": {
           "@type": "ImageObject",
-          "url": `${rootUrl}/favicon.svg`
+          "url": `${rootUrl}/favicon-192x192.png`
         }
       },
       "url": `${localizedUrl}/${page}`,
