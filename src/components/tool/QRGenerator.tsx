@@ -6,7 +6,7 @@ import QRCustomizer from "./QRCustomizer";
 import QRPreview from "./QRPreview";
 import QRHistory from "./QRHistory";
 import { AdSlot, AD_PLACEMENTS } from "../ads/MediavineAd";
-import { Link, FileText, Wifi, Contact, Mail, Phone, MessageSquare, MapPin, Bitcoin, ShieldCheck } from "lucide-react";
+import { Link, FileText, Wifi, Contact, Mail, Phone, MessageSquare, MapPin, Bitcoin, ShieldCheck, Lock, Shield, User, Building, Globe } from "lucide-react";
 
 interface QRGeneratorProps {
   initialPayloadFromUrl?: any;
@@ -176,26 +176,25 @@ export default function QRGenerator({ initialPayloadFromUrl }: QRGeneratorProps)
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
             <h3 className="text-sm font-bold tracking-wider text-slate-800 uppercase font-mono border-b border-slate-100 pb-3 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-blue-600" />
-              <span>2. Configure QR Target parameters</span>
+              <span>Configure QR Target Parameters</span>
             </h3>
 
             {/* Dynamic visual inputs matching active selection */}
             <div className="space-y-4">
               {activeType === "website_url" && (
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-                    <Link className="w-3.5 h-3.5 text-blue-500" />
-                    <span>{t("field_url")}</span>
-                  </label>
-                  <input
-                    type="url"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://yourbrand.com/deals"
-                    className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800 shadow-sm"
-                    id="input-website-url"
-                  />
-                  <p className="text-xs text-slate-400 font-medium">
+                  <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                    <Link className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                    <input
+                      type="url"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder={t("field_url")}
+                      className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
+                      id="input-website-url"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium px-1">
                     {t("address_validation")}
                   </p>
                 </div>
@@ -203,68 +202,67 @@ export default function QRGenerator({ initialPayloadFromUrl }: QRGeneratorProps)
 
               {activeType === "plain_text" && (
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-blue-500" />
-                    <span>{t("field_text")}</span>
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="Type anything or scan coordinates here..."
-                    className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800 shadow-sm resize-none"
-                    id="input-plain-text"
-                  />
+                  <div className="flex items-start gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                    <FileText className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0 mt-0.5" />
+                    <textarea
+                      rows={4}
+                      value={text}
+                      onChange={(e) => setText(e.target.value)}
+                      placeholder={t("field_text")}
+                      className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400 resize-none"
+                      id="input-plain-text"
+                    />
+                  </div>
                 </div>
               )}
 
               {activeType === "wifi_router" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_wifi_ssid")}
-                    </label>
-                    <input
-                      type="text"
-                      value={wifi.ssid}
-                      onChange={(e) => setWifi({ ...wifi, ssid: e.target.value })}
-                      placeholder="My Home WiFi Network"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
-                      id="input-wifi-ssid"
-                    />
+                  <div className="sm:col-span-2">
+                    <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                      <Wifi className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                      <input
+                        type="text"
+                        value={wifi.ssid}
+                        onChange={(e) => setWifi({ ...wifi, ssid: e.target.value })}
+                        placeholder={t("field_wifi_ssid")}
+                        className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
+                        id="input-wifi-ssid"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_wifi_pw")}
-                    </label>
-                    <input
-                      type="password"
-                      value={wifi.password}
-                      onChange={(e) => setWifi({ ...wifi, password: e.target.value })}
-                      placeholder="WPA password key"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
-                      id="input-wifi-password"
-                    />
+                  <div>
+                    <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                      <Lock className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                      <input
+                        type="password"
+                        value={wifi.password}
+                        onChange={(e) => setWifi({ ...wifi, password: e.target.value })}
+                        placeholder={t("field_wifi_pw")}
+                        className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
+                        id="input-wifi-password"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_wifi_sec")}
-                    </label>
-                    <select
-                      value={wifi.security}
-                      onChange={(e) => setWifi({ ...wifi, security: e.target.value })}
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 rounded-xl px-4 py-3 text-sm outline-none text-slate-800 font-semibold"
-                      id="input-wifi-security"
-                    >
-                      <option value="WPA">WPA / WPA2 (Recommended)</option>
-                      <option value="WEP">WEP (Legacy)</option>
-                      <option value="nopass">None (Open Network)</option>
-                    </select>
+                  <div>
+                    <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                      <Shield className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                      <select
+                        value={wifi.security}
+                        onChange={(e) => setWifi({ ...wifi, security: e.target.value })}
+                        className="w-full bg-transparent text-sm outline-none text-slate-800 font-semibold cursor-pointer"
+                        id="input-wifi-security"
+                      >
+                        <option value="WPA">WPA / WPA2 (Recommended)</option>
+                        <option value="WEP">WEP (Legacy)</option>
+                        <option value="nopass">None (Open Network)</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="sm:col-span-2 pt-2 flex items-center gap-3">
+                  <div className="sm:col-span-2 pt-1 flex items-center gap-3">
                     <input
                       type="checkbox"
                       checked={wifi.hidden}
@@ -281,132 +279,126 @@ export default function QRGenerator({ initialPayloadFromUrl }: QRGeneratorProps)
 
               {activeType === "vcard_contact" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_vcard_name")}
-                    </label>
-                    <input
-                      type="text"
-                      value={vcard.name}
-                      onChange={(e) => setVcard({ ...vcard, name: e.target.value })}
-                      placeholder="Jane Doe"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
-                      id="input-vcard-name"
-                    />
+                  <div className="sm:col-span-2">
+                    <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                      <User className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                      <input
+                        type="text"
+                        value={vcard.name}
+                        onChange={(e) => setVcard({ ...vcard, name: e.target.value })}
+                        placeholder={t("field_vcard_name")}
+                        className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
+                        id="input-vcard-name"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_vcard_phone")}
-                    </label>
-                    <input
-                      type="tel"
-                      value={vcard.phone}
-                      onChange={(e) => setVcard({ ...vcard, phone: e.target.value })}
-                      placeholder="+1 (555) 019-2834"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
-                      id="input-vcard-phone"
-                    />
+                  <div>
+                    <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                      <Phone className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                      <input
+                        type="tel"
+                        value={vcard.phone}
+                        onChange={(e) => setVcard({ ...vcard, phone: e.target.value })}
+                        placeholder={t("field_vcard_phone")}
+                        className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
+                        id="input-vcard-phone"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_vcard_email")}
-                    </label>
-                    <input
-                      type="email"
-                      value={vcard.email}
-                      onChange={(e) => setVcard({ ...vcard, email: e.target.value })}
-                      placeholder="jane@corporate.com"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
-                      id="input-vcard-email"
-                    />
+                  <div>
+                    <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                      <Mail className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                      <input
+                        type="email"
+                        value={vcard.email}
+                        onChange={(e) => setVcard({ ...vcard, email: e.target.value })}
+                        placeholder={t("field_vcard_email")}
+                        className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
+                        id="input-vcard-email"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_vcard_company")}
-                    </label>
-                    <input
-                      type="text"
-                      value={vcard.company}
-                      onChange={(e) => setVcard({ ...vcard, company: e.target.value })}
-                      placeholder="Standard Corp Ltd"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
-                      id="input-vcard-company"
-                    />
+                  <div>
+                    <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                      <Building className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                      <input
+                        type="text"
+                        value={vcard.company}
+                        onChange={(e) => setVcard({ ...vcard, company: e.target.value })}
+                        placeholder={t("field_vcard_company")}
+                        className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
+                        id="input-vcard-company"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_vcard_website")}
-                    </label>
-                    <input
-                      type="url"
-                      value={vcard.website}
-                      onChange={(e) => setVcard({ ...vcard, website: e.target.value })}
-                      placeholder="https://corporate.com"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
-                      id="input-vcard-website"
-                    />
+                  <div>
+                    <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                      <Globe className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                      <input
+                        type="url"
+                        value={vcard.website}
+                        onChange={(e) => setVcard({ ...vcard, website: e.target.value })}
+                        placeholder={t("field_vcard_website")}
+                        className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
+                        id="input-vcard-website"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_vcard_address")}
-                    </label>
-                    <input
-                      type="text"
-                      value={vcard.address}
-                      onChange={(e) => setVcard({ ...vcard, address: e.target.value })}
-                      placeholder="120 Market St, San Francisco, CA"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
-                      id="input-vcard-address"
-                    />
+                  <div className="sm:col-span-2">
+                    <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                      <MapPin className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                      <input
+                        type="text"
+                        value={vcard.address}
+                        onChange={(e) => setVcard({ ...vcard, address: e.target.value })}
+                        placeholder={t("field_vcard_address")}
+                        className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
+                        id="input-vcard-address"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
               {activeType === "email_scheme" && (
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_email_to")}
-                    </label>
+                <div className="space-y-3.5">
+                  <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                    <Mail className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
                     <input
                       type="email"
                       value={email.address}
                       onChange={(e) => setEmail({ ...email, address: e.target.value })}
-                      placeholder="support@product.com"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
+                      placeholder={t("field_email_to")}
+                      className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
                       id="input-email-to"
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_email_sub")}
-                    </label>
+                  <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                    <FileText className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
                     <input
                       type="text"
                       value={email.subject}
                       onChange={(e) => setEmail({ ...email, subject: e.target.value })}
-                      placeholder="Warranty Claim Inquiry"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
+                      placeholder={t("field_email_sub")}
+                      className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
                       id="input-email-subject"
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_email_body")}
-                    </label>
+                  <div className="flex items-start gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                    <MessageSquare className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0 mt-0.5" />
                     <textarea
                       rows={3}
                       value={email.body}
                       onChange={(e) => setEmail({ ...email, body: e.target.value })}
-                      placeholder="Write your email body draft message..."
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800 resize-none shadow-inner"
+                      placeholder={t("field_email_body")}
+                      className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400 resize-none"
                       id="input-email-body"
                     />
                   </div>
@@ -415,46 +407,42 @@ export default function QRGenerator({ initialPayloadFromUrl }: QRGeneratorProps)
 
               {activeType === "phone_line" && (
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                    {t("field_phone")}
-                  </label>
-                  <input
-                    type="tel"
-                    value={phoneLine}
-                    onChange={(e) => setPhoneLine(e.target.value)}
-                    placeholder="+15551234567"
-                    className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
-                    id="input-phone-number"
-                  />
+                  <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                    <Phone className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                    <input
+                      type="tel"
+                      value={phoneLine}
+                      onChange={(e) => setPhoneLine(e.target.value)}
+                      placeholder={t("field_phone")}
+                      className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
+                      id="input-phone-number"
+                    />
+                  </div>
                 </div>
               )}
 
               {activeType === "whatsapp_chat" && (
                 <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_whatsapp_phone")}
-                    </label>
+                  <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                    <Phone className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
                     <input
                       type="tel"
                       value={whatsapp.phone}
                       onChange={(e) => setWhatsapp({ ...whatsapp, phone: e.target.value })}
-                      placeholder="+15553654455 leading country codes"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
+                      placeholder={t("field_whatsapp_phone")}
+                      className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
                       id="input-whatsapp-phone"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_whatsapp_msg")}
-                    </label>
+                  <div className="flex items-start gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                    <MessageSquare className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0 mt-0.5" />
                     <textarea
                       rows={3}
                       value={whatsapp.message}
                       onChange={(e) => setWhatsapp({ ...whatsapp, message: e.target.value })}
-                      placeholder="Hi! I want to book a table reservation."
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800 resize-none shadow-sm"
+                      placeholder={t("field_whatsapp_msg")}
+                      className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400 resize-none"
                       id="input-whatsapp-message"
                     />
                   </div>
@@ -463,32 +451,28 @@ export default function QRGenerator({ initialPayloadFromUrl }: QRGeneratorProps)
 
               {activeType === "geo_location" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_geo_lat")}
-                    </label>
+                  <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                    <MapPin className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
                     <input
                       type="number"
                       step="any"
                       value={geo.latitude}
                       onChange={(e) => setGeo({ ...geo, latitude: e.target.value })}
-                      placeholder="37.7749"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
+                      placeholder={t("field_geo_lat")}
+                      className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
                       id="input-geo-latitude"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_geo_lon")}
-                    </label>
+                  <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                    <Globe className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
                     <input
                       type="number"
                       step="any"
                       value={geo.longitude}
                       onChange={(e) => setGeo({ ...geo, longitude: e.target.value })}
-                      placeholder="-122.4194"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
+                      placeholder={t("field_geo_lon")}
+                      className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
                       id="input-geo-longitude"
                     />
                   </div>
@@ -497,7 +481,6 @@ export default function QRGenerator({ initialPayloadFromUrl }: QRGeneratorProps)
                     <button
                       type="button"
                       onClick={() => {
-                        // Load SF downtown mock parameters nicely matching functional search features
                         setGeo({ latitude: "37.774929", longitude: "-122.419416" });
                       }}
                       className="text-xs text-blue-600 hover:text-blue-700 font-semibold cursor-pointer underline flex items-center gap-1.5"
@@ -510,31 +493,27 @@ export default function QRGenerator({ initialPayloadFromUrl }: QRGeneratorProps)
               )}
 
               {activeType === "sms_message" && (
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_sms_phone")}
-                    </label>
+                <div className="space-y-3.5">
+                  <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                    <Phone className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
                     <input
                       type="tel"
                       value={sms.phone}
                       onChange={(e) => setSms({ ...sms, phone: e.target.value })}
-                      placeholder="+15555410145"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
+                      placeholder={t("field_sms_phone")}
+                      className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
                       id="input-sms-phone"
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_sms_msg")}
-                    </label>
+                  <div className="flex items-start gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                    <MessageSquare className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0 mt-0.5" />
                     <textarea
                       rows={3}
                       value={sms.message}
                       onChange={(e) => setSms({ ...sms, message: e.target.value })}
-                      placeholder="Hi and greetings!"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800 resize-none shadow-inner"
+                      placeholder={t("field_sms_msg")}
+                      className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400 resize-none"
                       id="input-sms-message"
                     />
                   </div>
@@ -543,47 +522,47 @@ export default function QRGenerator({ initialPayloadFromUrl }: QRGeneratorProps)
 
               {activeType === "bitcoin_crypto" && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1.5 sm:col-span-3">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_crypto_addr")}
-                    </label>
-                    <input
-                      type="text"
-                      value={crypto.address}
-                      onChange={(e) => setCrypto({ ...crypto, address: e.target.value })}
-                      placeholder="1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-mono font-medium text-slate-800"
-                      id="input-crypto-address"
-                    />
+                  <div className="sm:col-span-3">
+                    <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                      <Bitcoin className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                      <input
+                        type="text"
+                        value={crypto.address}
+                        onChange={(e) => setCrypto({ ...crypto, address: e.target.value })}
+                        placeholder={t("field_crypto_addr")}
+                        className="w-full bg-transparent text-sm outline-none font-mono font-semibold text-slate-800 placeholder-slate-400"
+                        id="input-crypto-address"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_crypto_amount")}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={crypto.amount}
-                      onChange={(e) => setCrypto({ ...crypto, amount: e.target.value })}
-                      placeholder="0.005"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
-                      id="input-crypto-amount"
-                    />
+                  <div>
+                    <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                      <Bitcoin className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={crypto.amount}
+                        onChange={(e) => setCrypto({ ...crypto, amount: e.target.value })}
+                        placeholder={t("field_crypto_amount")}
+                        className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
+                        id="input-crypto-amount"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      {t("field_crypto_msg")}
-                    </label>
-                    <input
-                      type="text"
-                      value={crypto.message}
-                      onChange={(e) => setCrypto({ ...crypto, message: e.target.value })}
-                      placeholder="Purchase Payment ID #029"
-                      className="w-full bg-white border border-slate-250 focus:border-blue-500 rounded-xl px-4 py-3 text-sm outline-none font-medium text-slate-800"
-                      id="input-crypto-message"
-                    />
+                  <div className="sm:col-span-2">
+                    <div className="flex items-center gap-3 bg-white border-2 border-indigo-500 ring-4 ring-indigo-500/15 rounded-2xl px-4 py-3.5 transition-all duration-200 shadow-[0_0_18px_rgba(99,102,241,0.18)]">
+                      <MessageSquare className="w-5 h-5 text-indigo-600 scale-110 transition-all duration-200 shrink-0" />
+                      <input
+                        type="text"
+                        value={crypto.message}
+                        onChange={(e) => setCrypto({ ...crypto, message: e.target.value })}
+                        placeholder={t("field_crypto_msg")}
+                        className="w-full bg-transparent text-sm outline-none font-semibold text-slate-800 placeholder-slate-400"
+                        id="input-crypto-message"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
