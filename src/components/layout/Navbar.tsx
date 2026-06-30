@@ -221,18 +221,6 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
               );
             })}
           </div>
-          <div className="px-4 py-4 border-t border-zinc-100 bg-zinc-50 flex flex-col gap-2">
-            <a
-              href={`/${locale}`}
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavClick("home");
-              }}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-600 active:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-md text-center cursor-pointer block"
-            >
-              Start Generating QR
-            </a>
-          </div>
         </div>
       )}
     </header>

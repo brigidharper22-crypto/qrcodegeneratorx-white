@@ -165,7 +165,7 @@ export default function QRGenerator({ initialPayloadFromUrl }: QRGeneratorProps)
   return (
     <div className="space-y-8" id="qr-generator-root">
       {/* 1. Selector Tab bar */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-sm">
         <QRTypeSelector activeType={activeType} onChange={setActiveType} />
       </div>
 
