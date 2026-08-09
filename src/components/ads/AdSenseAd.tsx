@@ -43,7 +43,7 @@ export function AdSenseAd({ adSlot = "AUTO", style = {} }: AdSenseAdProps) {
       ref={adRef}
       className="adsbygoogle"
       style={mergedStyle}
-      data-ad-client="ca-pub-8349675226743692"
+      data-ad-client="ca-pub-2533280181711071"
       data-ad-slot={adSlot === "AUTO" ? "8179247169" : adSlot}
       data-ad-format="auto"
       data-full-width-responsive="true"
