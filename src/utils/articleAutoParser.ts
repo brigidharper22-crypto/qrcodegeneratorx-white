@@ -46,16 +46,16 @@ export function detectCategory(text: string, currentCategory?: string): string {
   }
   const lower = text.toLowerCase();
 
-  if (/cafe|coffee|restaurant|food|menu|dining|hotel|hospitality|bar|airbnb|vacation|rental|lodging|host|apartment|guest|مقهى|كافيه|مطعم|منيو|ضيافة|عقارات|ايجار/i.test(lower)) {
+  if (/cafe|coffee|restaurant|food|menu|dining|hotel|hospitality|bar|مقهى|كافيه|مطعم|منيو|ضيافة/i.test(lower)) {
     return "Tutorials";
   }
   if (/marketing|seo|campaign|growth|analytics|traffic|تسويق|سيو|حملات/i.test(lower)) {
     return "Marketing";
   }
-  if (/business|enterprise|retail|sales|shop|store|commercial|تجارة|أعمال|مبيعات|شركات/i.test(lower)) {
+  if (/business|enterprise|retail|sales|shop|store|تجارة|أعمال|مبيعات|شركات/i.test(lower)) {
     return "Business";
   }
-  if (/how to|guide|step by step|tutorial|create|setup|tips|كيف|دليل|شرح|طريقة|خطوات|نصائح/i.test(lower)) {
+  if (/how to|guide|step by step|tutorial|create|setup|كيف|دليل|شرح|طريقة|خطوات/i.test(lower)) {
     return "Tutorials";
   }
   if (/security|dynamic|tech|api|generator|technology|تقنية|أمان|تكنولوجيا/i.test(lower)) {
@@ -65,36 +65,6 @@ export function detectCategory(text: string, currentCategory?: string): string {
     return "Events";
   }
   return "Tutorials";
-}
-
-/**
- * Helper to check if a short isolated line looks like a natural Title Case or Section Heading
- */
-function isNaturalHeadingCandidate(line: string): boolean {
-  const trimmed = line.trim();
-  if (trimmed.length < 5 || trimmed.length > 85) return false;
-  
-  // Must NOT end with standard sentence punctuation
-  if (/[.,;:!؟?]$/.test(trimmed)) return false;
-  
-  // Must NOT be a list item or table
-  if (/^[-*+•\d+\.]\s/.test(trimmed) || trimmed.includes("|") || trimmed.startsWith(">")) return false;
-
-  const words = trimmed.split(/\s+/);
-  if (words.length < 2 || words.length > 13) return false;
-
-  // Check English Title Case (most words capitalized)
-  const capitalizedWords = words.filter((w) => /^[A-Z][a-z0-9]*$/.test(w));
-  if (capitalizedWords.length >= Math.ceil(words.length * 0.6)) {
-    return true;
-  }
-
-  // Common heading prefix indicators (English & Arabic)
-  if (/^(start with|why|how to|what is|best|the top|step \d+|guide to|tips for|ways to|key benefits|summary|conclusion|كيفية|طريقة|خطوات|أفضل|لماذا|دليل|نصائح|أهمية|مميزات)/i.test(trimmed)) {
-    return true;
-  }
-
-  return false;
 }
 
 /**
@@ -109,11 +79,11 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
       slug: "",
       focusKeyword: "",
       metaDescription: "",
-      category: "Tutorials",
+      category: "Guides",
       summary: "",
       keywords: [],
       estimatedReadTime: "1 min read",
-      paragraphs: [],
+      paragraphs: [""],
       rawBodyText: "",
       detectedStats: {
         headingsCount: 0,
@@ -154,15 +124,15 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
     }
 
     // Check metadata patterns
-    const seoTitleMatch = trimmed.match(/^(?:seo\s+title|seo\s+heading|عنوان\s+سيو|عنوان\s+السيو|seo\s+h1)\s*[:：\-–]\s*(.+)$/i);
-    const articleTitleMatch = trimmed.match(/^(?:article\s+title|title|h1\s+title|h1|عنوان\s+المقال|العنوان\s+الرئيسي|العنوان)\s*[:：\-–]\s*(.+)$/i);
+    const seoTitleMatch = trimmed.match(/^(?:seo\s+title|عنوان\s+سيو)\s*[:：\-–]\s*(.+)$/i);
+    const articleTitleMatch = trimmed.match(/^(?:article\s+title|title|h1|عنوان\s+المقال|العنوان)\s*[:：\-–]\s*(.+)$/i);
     const h1MarkdownMatch = trimmed.match(/^#\s+(.+)$/);
-    const descMatch = trimmed.match(/^(?:meta\s+description|meta\s+desc|seo\s+description|description|وصف\s+الميتا|الوصف\s+التعريفي|الوصف\s+المختصر|وصف\s+سيو|الوصف)\s*[:：\-–]\s*(.+)$/i);
-    const focusKwMatch = trimmed.match(/^(?:primary\s+keywords?|focus\s+keywords?|main\s+keywords?|target\s+keywords?|core\s+keywords?|الكلمة\s+المفتاحية\s+الرئيسية|الكلمة\s+الرئيسية|الكلمة\s+الدلالية\s+الرئيسية|الكلمة\s+المفتاحية\s+المستهدفة|الكلمة\s+المفتاحية)\s*[:：\-–]\s*(.+)$/i);
-    const slugMatch = trimmed.match(/^(?:url\s+slug|slug|permalink|url|رابط\s+المقال|الرابط\s+اللطيف|الرابط|الاسم\s+اللطيف)\s*[:：\-–]\s*(.+)$/i);
-    const kwMatch = trimmed.match(/^(?:secondary\s+keywords?|related\s+keywords?|secondary\s+kw|additional\s+keywords?|keywords\s+tags?|keywords?|tags?|الكلمات\s+المفتاحية\s+الثانوية|الكلمات\s+الثانوية|الكلمات\s+الدلالية|الكلمات\s+المفتاحية|الوسوم)\s*[:：\-–]\s*(.+)$/i);
-    const catMatch = trimmed.match(/^(?:category|classification|section|التصنيف|الفئة|القسم)\s*[:：\-–]\s*(.+)$/i);
-    const sumMatch = trimmed.match(/^(?:summary|quick\s+summary|overview|الملخص|ملخص\s+المقال|نبذة)\s*[:：\-–]\s*(.+)$/i);
+    const descMatch = trimmed.match(/^(?:meta\s+description|description|seo\s+description|الوصف\s+المختصر|الوصف|وصف\s+سيو)\s*[:：\-–]\s*(.+)$/i);
+    const focusKwMatch = trimmed.match(/^(?:primary\s+keyword|focus\s+keyword|main\s+keyword|target\s+keyword|الكلمة\s+المفتاحية\s+الرئيسية|الكلمة\s+الدلالية\s+الرئيسية|الكلمة\s+الرئيسية|الكلمة\s+المفتاحية)\s*[:：\-–]\s*(.+)$/i);
+    const slugMatch = trimmed.match(/^(?:url\s+slug|slug|permalink|url|رابط\s+المقال|الرابط|الاسم\s+اللطيف)\s*[:：\-–]\s*(.+)$/i);
+    const kwMatch = trimmed.match(/^(?:secondary\s+keywords|keywords\s+tags|keywords|tags|الكلمات\s+الدلالية|الكلمات\s+المفتاحية|الوسوم)\s*[:：\-–]\s*(.+)$/i);
+    const catMatch = trimmed.match(/^(?:category|classification|التصنيف|القسم)\s*[:：\-–]\s*(.+)$/i);
+    const sumMatch = trimmed.match(/^(?:summary|quick\s+summary|الملخص|ملخص\s+المقال)\s*[:：\-–]\s*(.+)$/i);
 
     if (seoTitleMatch) {
       extractedSeoTitle = seoTitleMatch[1].trim();
@@ -213,8 +183,8 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
     bodyLineCandidates.push({ lineIndex: i, text: rawLine });
   }
 
-  // Finalize Title (prefer SEO title if explicitly provided, else extracted title)
-  const finalTitle = extractedSeoTitle || extractedTitle || "New Article Title";
+  // Finalize Title (prefer SEO title or extracted title)
+  const finalTitle = extractedTitle || extractedSeoTitle || "New Article Title";
 
   // Parse keywords from rawKeywordsList
   const parsedKeywords: string[] = [];
@@ -275,27 +245,7 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
     }
   };
 
-  // Strip duplicate title if repeated at top of body
-  let bodyStartIndex = 0;
-  while (bodyStartIndex < rawBodyLines.length) {
-    const lineTrim = rawBodyLines[bodyStartIndex].trim();
-    if (!lineTrim) {
-      bodyStartIndex++;
-      continue;
-    }
-    const lowerTrim = lineTrim.toLowerCase().replace(/^#+\s*/, "");
-    if (
-      lowerTrim === extractedTitle.toLowerCase() ||
-      lowerTrim === extractedSeoTitle.toLowerCase() ||
-      lowerTrim === finalTitle.toLowerCase()
-    ) {
-      bodyStartIndex++;
-    } else {
-      break;
-    }
-  }
-
-  for (let i = bodyStartIndex; i < rawBodyLines.length; i++) {
+  for (let i = 0; i < rawBodyLines.length; i++) {
     const rawLine = rawBodyLines[i];
     const trimmed = rawLine.trim();
 
@@ -335,22 +285,11 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
       continue;
     }
 
-    // Check for standalone callout (> or 💡 or 📌)
+    // Check for standalone callout (> or 💡)
     const isCallout = trimmed.startsWith("> ") || trimmed.startsWith("💡") || trimmed.startsWith("📌");
     if (isCallout) {
       flushNormalLines();
       structuredParagraphs.push(trimmed);
-      continue;
-    }
-
-    // Check for natural Title Case section heading (isolated line)
-    const prevLineEmpty = i === bodyStartIndex || !rawBodyLines[i - 1].trim();
-    const nextLineEmpty = i === rawBodyLines.length - 1 || !rawBodyLines[i + 1].trim();
-
-    if (prevLineEmpty && nextLineEmpty && isNaturalHeadingCandidate(trimmed)) {
-      flushNormalLines();
-      headingsCount++;
-      structuredParagraphs.push(`H2: ${trimmed}`);
       continue;
     }
 
