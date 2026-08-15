@@ -300,122 +300,39 @@ export default function QRCustomizer({ config, onChange }: QRCustomizerProps) {
                 <label className="text-xs font-bold text-slate-400 uppercase font-mono tracking-wider">
                   {t("custom_colors")}
                 </label>
-                <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => onChange({ isGradient: false })}
-                    className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                      !config.isGradient
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    Solid
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onChange({ 
-                      isGradient: true, 
-                      gradientStart: config.gradientStart || config.fgColor, 
-                      gradientEnd: config.gradientEnd || "#7C3AED" 
-                    })}
-                    className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                      config.isGradient
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    Gradient
-                  </button>
-                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {/* Foreground Pickers */}
-                {!config.isGradient ? (
-                  <div className="flex items-center gap-2.5 p-2.5 border border-slate-200 rounded-xl bg-slate-50/40 relative">
-                    <div 
-                      className="relative w-8.5 h-8.5 rounded-lg overflow-hidden border border-slate-200 shadow-inner flex items-center justify-center shrink-0 cursor-pointer hover:scale-105 transition-transform"
-                      style={{ backgroundColor: config.fgColor }}
-                    >
-                      <input
-                        type="color"
-                        value={config.fgColor}
-                        onChange={(e) => {
-                          onChange({ fgColor: e.target.value, isGradient: false });
-                          setFgHex(e.target.value);
-                        }}
-                        className="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer opacity-0 scale-150"
-                      />
-                      <Palette className="w-4 h-4 text-white mix-blend-difference" />
-                    </div>
-                    <div className="text-start flex-1 min-w-0">
-                      <span className="text-[9px] uppercase font-mono font-bold text-slate-400 block tracking-wider leading-none mb-0.5">
-                        {t("fg_color")}
-                      </span>
-                      <input
-                        type="text"
-                        value={fgHex}
-                        onChange={(e) => handleFgTextChange(e.target.value)}
-                        placeholder="#000000"
-                        className="w-full bg-transparent font-mono text-[11px] font-bold text-slate-700 uppercase outline-none focus:text-blue-600 border-b border-transparent focus:border-blue-300 py-0.5"
-                      />
-                    </div>
+                <div className="flex items-center gap-2.5 p-2.5 border border-slate-200 rounded-xl bg-slate-50/40 relative">
+                  <div 
+                    className="relative w-8.5 h-8.5 rounded-lg overflow-hidden border border-slate-200 shadow-inner flex items-center justify-center shrink-0 cursor-pointer hover:scale-105 transition-transform"
+                    style={{ backgroundColor: config.fgColor }}
+                  >
+                    <input
+                      type="color"
+                      value={config.fgColor}
+                      onChange={(e) => {
+                        onChange({ fgColor: e.target.value, isGradient: false });
+                        setFgHex(e.target.value);
+                      }}
+                      className="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer opacity-0 scale-150"
+                    />
+                    <Palette className="w-4 h-4 text-white mix-blend-difference" />
                   </div>
-                ) : (
-                  <div className="space-y-2 p-2.5 border border-slate-200 rounded-xl bg-slate-50/40">
-                    <span className="text-[9px] uppercase font-mono font-bold text-slate-400 block tracking-wider leading-none">
-                      GRADIENT FOREGROUND
+                  <div className="text-start flex-1 min-w-0">
+                    <span className="text-[9px] uppercase font-mono font-bold text-slate-400 block tracking-wider leading-none mb-0.5">
+                      {t("fg_color")}
                     </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="flex items-center gap-1.5 p-1 bg-white rounded-lg border border-slate-200">
-                        <div 
-                          className="relative w-6 h-6 rounded-md overflow-hidden border border-slate-250 shadow-sm flex items-center justify-center shrink-0 cursor-pointer hover:scale-105 transition-transform"
-                          style={{ backgroundColor: config.gradientStart || "#2563EB" }}
-                        >
-                          <input
-                            type="color"
-                            value={config.gradientStart || "#2563EB"}
-                            onChange={(e) => {
-                              onChange({ gradientStart: e.target.value, isGradient: true });
-                              setGradStartHex(e.target.value);
-                            }}
-                            className="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer opacity-0"
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={gradStartHex}
-                          onChange={(e) => handleGradStartTextChange(e.target.value)}
-                          className="w-full bg-transparent font-mono text-[9px] font-bold text-slate-750 uppercase outline-none focus:text-blue-600"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-1.5 p-1 bg-white rounded-lg border border-slate-200">
-                        <div 
-                          className="relative w-6 h-6 rounded-md overflow-hidden border border-slate-250 shadow-sm flex items-center justify-center shrink-0 cursor-pointer hover:scale-105 transition-transform"
-                          style={{ backgroundColor: config.gradientEnd || "#7C3AED" }}
-                        >
-                          <input
-                            type="color"
-                            value={config.gradientEnd || "#7C3AED"}
-                            onChange={(e) => {
-                              onChange({ gradientEnd: e.target.value, isGradient: true });
-                              setGradEndHex(e.target.value);
-                            }}
-                            className="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer opacity-0"
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={gradEndHex}
-                          onChange={(e) => handleGradEndTextChange(e.target.value)}
-                          className="w-full bg-transparent font-mono text-[9px] font-bold text-slate-755 uppercase outline-none focus:text-blue-600"
-                        />
-                      </div>
-                    </div>
+                    <input
+                      type="text"
+                      value={fgHex}
+                      onChange={(e) => handleFgTextChange(e.target.value)}
+                      placeholder="#000000"
+                      className="w-full bg-transparent font-mono text-[11px] font-bold text-slate-700 uppercase outline-none focus:text-blue-600 border-b border-transparent focus:border-blue-300 py-0.5"
+                    />
                   </div>
-                )}
+                </div>
 
                 {/* Background Checker */}
                 <div className="flex items-center gap-2.5 p-2.5 border border-slate-200 rounded-xl bg-slate-50/40 relative">

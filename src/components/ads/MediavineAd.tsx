@@ -11,12 +11,9 @@ export const AD_PLACEMENTS: Record<string, AdPlacement> = {
     id: "mv-sticky-leaderboard",
     style: {
       position: "relative",
-      background: "#fff",
       display: "flex",
       justifyContent: "center",
-      padding: "8px 0",
-      borderBottom: "1px solid #e2e8f0",
-      minHeight: "90px"
+      padding: "0",
     }
   },
   heroRectangle: {
@@ -24,17 +21,13 @@ export const AD_PLACEMENTS: Record<string, AdPlacement> = {
     style: {
       display: "flex",
       justifyContent: "center",
-      padding: "24px 0",
-      background: "#f8faff",
-      minHeight: "280px"
+      padding: "0",
     }
   },
   sidebarSticky: {
     id: "mv-sidebar-sticky",
     style: {
       position: "relative",
-      minHeight: "600px",
-      minWidth: "300px",
       display: "flex",
       justifyContent: "center"
     }
@@ -44,8 +37,7 @@ export const AD_PLACEMENTS: Record<string, AdPlacement> = {
     style: {
       display: "flex",
       justifyContent: "center",
-      padding: "24px 0",
-      minHeight: "280px"
+      padding: "0",
     }
   },
   inContent2: {
@@ -53,9 +45,7 @@ export const AD_PLACEMENTS: Record<string, AdPlacement> = {
     style: {
       display: "flex",
       justifyContent: "center",
-      padding: "24px 0",
-      background: "#f0f5ff",
-      minHeight: "280px"
+      padding: "0",
     }
   },
   inContent3: {
@@ -63,8 +53,7 @@ export const AD_PLACEMENTS: Record<string, AdPlacement> = {
     style: {
       display: "flex",
       justifyContent: "center",
-      padding: "24px 0",
-      minHeight: "280px"
+      padding: "0",
     }
   },
   blogMid: {
@@ -72,8 +61,7 @@ export const AD_PLACEMENTS: Record<string, AdPlacement> = {
     style: {
       display: "flex",
       justifyContent: "center",
-      margin: "32px 0",
-      minHeight: "280px"
+      margin: "0",
     }
   },
   blogBottom: {
@@ -81,8 +69,7 @@ export const AD_PLACEMENTS: Record<string, AdPlacement> = {
     style: {
       display: "flex",
       justifyContent: "center",
-      margin: "32px 0",
-      minHeight: "250px"
+      margin: "0",
     }
   },
   preFooter: {
@@ -90,9 +77,7 @@ export const AD_PLACEMENTS: Record<string, AdPlacement> = {
     style: {
       display: "flex",
       justifyContent: "center",
-      padding: "32px 0",
-      background: "#f8faff",
-      minHeight: "280px"
+      padding: "0",
     }
   },
   adhesionMobile: {
@@ -100,10 +85,7 @@ export const AD_PLACEMENTS: Record<string, AdPlacement> = {
     style: {
       display: "flex",
       justifyContent: "center",
-      padding: "6px 0",
-      minHeight: "60px",
-      background: "#fff",
-      borderTop: "1px solid #e2e8f0"
+      padding: "0",
     }
   }
 };
@@ -154,11 +136,11 @@ interface AdSlotProps {
 }
 
 export function AdSlot({ placement, className = "", style = {} }: AdSlotProps) {
-  // Uses exact format requested: <div id="[slot-id]" style="[exact-styles]" aria-label="Advertisement"></div>
+  // Uses exact format requested, automatically hiding when empty so no blank box shows
   return (
     <div
       id={placement.id}
-      className={`mediavine-ad ${className}`}
+      className={`mediavine-ad empty:hidden ${className}`}
       style={{ ...placement.style, ...style }}
       aria-label="Advertisement"
     ></div>

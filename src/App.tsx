@@ -783,11 +783,6 @@ export default function App() {
                   </div>
                 </section>
 
-                {/* AD SLOT 3: Between Features and Testimonials */}
-                <AdSlot placement={AD_PLACEMENTS.betweenSections2} />
-
-                <AdSenseAd adSlot="AUTO" />
-
                 {/* SECTION: Social Testimonials */}
                 <section className="bg-blue-50/50 border border-blue-105 rounded-3xl p-8 sm:p-12 space-y-10">
                   <div className="text-center space-y-3">
