@@ -223,12 +223,80 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
     setParagraphs(parsed.length > 0 ? parsed : [""]);
   };
 
+  // Parse comma-separated or bulk keywords text (stripping common prefixes like "Secondary Keywords:")
+  const parseKeywordsString = (input: string): string[] => {
+    if (!input) return [];
+    // Strip common AI/SEO prefixes
+    const cleanPrefix = input.replace(
+      /^(?:secondary\s+keywords|primary\s+keywords|focus\s+keywords?|keywords|الكلمات\s+المفتاحية|الكلمات\s+الدلالية|الكلمات\s+الفرعية)\s*[:：\-–]\s*/i,
+      ""
+    );
+    // Split on commas (English , & Arabic ،), semicolons (; & ؛), pipes (|), and newlines
+    return cleanPrefix
+      .split(/[,،;؛|\n]+/)
+      .map((k) => k.trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g, ""))
+      .filter((k) => k.length > 0);
+  };
+
+  // Add bulk or single keywords
+  const addKeywordsFromText = (rawText: string) => {
+    const newItems = parseKeywordsString(rawText);
+    if (newItems.length === 0) return;
+    setKeywords((prev) => {
+      const existing = new Set(prev.map((k) => k.toLowerCase().trim()));
+      const toAdd: string[] = [];
+      for (const item of newItems) {
+        if (!existing.has(item.toLowerCase())) {
+          existing.add(item.toLowerCase());
+          toAdd.push(item);
+        }
+      }
+      return [...prev, ...toAdd];
+    });
+  };
+
+  // Auto-split existing keywords if any item contains commas or newlines
+  useEffect(() => {
+    const hasCommas = keywords.some((k) => /[,،;؛|\n]/.test(k));
+    if (hasCommas) {
+      const flattened: string[] = [];
+      const seen = new Set<string>();
+      keywords.forEach((k) => {
+        parseKeywordsString(k).forEach((subK) => {
+          if (!seen.has(subK.toLowerCase())) {
+            seen.add(subK.toLowerCase());
+            flattened.push(subK);
+          }
+        });
+      });
+      setKeywords(flattened);
+    }
+  }, [keywords]);
+
+  // Handle typing in keyword input
+  const handleKeywordInputChange = (val: string) => {
+    if (/[,،;؛|\n]/.test(val)) {
+      addKeywordsFromText(val);
+      setKeywordInput("");
+    } else {
+      setKeywordInput(val);
+    }
+  };
+
+  // Handle paste in keyword input
+  const handleKeywordPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData("text");
+    if (pasted) {
+      e.preventDefault();
+      addKeywordsFromText(pasted);
+      setKeywordInput("");
+    }
+  };
+
   // Add/Remove keywords
   const handleAddKeyword = () => {
     if (!keywordInput.trim()) return;
-    if (!keywords.includes(keywordInput.trim())) {
-      setKeywords([...keywords, keywordInput.trim()]);
-    }
+    addKeywordsFromText(keywordInput);
     setKeywordInput("");
   };
 
@@ -1359,40 +1427,50 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
 
               {/* Keyword Tags */}
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                  الكلمات الدلالية (Keywords Tags)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    الكلمات الدلالية (Keywords Tags)
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {keywords.length} وسم
+                  </span>
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={keywordInput}
-                    onChange={(e) => setKeywordInput(e.target.value)}
+                    onChange={(e) => handleKeywordInputChange(e.target.value)}
+                    onPaste={handleKeywordPaste}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") {
+                      if (e.key === "Enter" || e.key === "," || e.key === "،") {
                         e.preventDefault();
                         handleAddKeyword();
                       }
                     }}
-                    placeholder="أدخل وسم واضغط Enter..."
-                    className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                    placeholder="الصق قائمة مفصولة بفواصل (,) أو اكتب واضغط Enter..."
+                    className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
                     onClick={handleAddKeyword}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold cursor-pointer"
+                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition-colors cursor-pointer"
                   >
                     إضافة
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-1.5 pt-1">
+                <p className="text-[10px] text-slate-400 leading-tight">
+                  💡 يتم فصل الكلمات تلقائياً عند كتابة أو لصق نص يحتوي على فواصل (مثل <code>،</code> أو <code>,</code>).
+                </p>
+                <div className="flex flex-wrap gap-1.5 pt-1 max-h-48 overflow-y-auto">
                   {keywords.map((kw) => (
                     <span
                       key={kw}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md text-[11px] font-medium"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-[11px] font-medium transition-colors"
                     >
                       <span>{kw}</span>
                       <button
                         onClick={() => handleRemoveKeyword(kw)}
-                        className="text-slate-400 hover:text-red-500 text-xs font-bold cursor-pointer"
+                        className="text-slate-400 hover:text-red-600 text-xs font-bold cursor-pointer"
+                        title="حذف الوسم"
                       >
                         ×
                       </button>
