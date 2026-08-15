@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Fragment, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, useMemo, Fragment, lazy, Suspense } from "react";
 import { useI18n, SUPPORTED_LOCALES } from "./hooks/useI18n";
 import { Locale } from "./types";
 import Navbar from "./components/layout/Navbar";
@@ -460,8 +460,22 @@ export default function App() {
   // Route State: "home", "how-it-works", "features", "faq", "blog", "blog/id", "privacy-policy", "terms"
   const [currentPage, setCurrentPage] = useState<string>("home");
   const [sharedPayload, setSharedPayload] = useState<any>(null);
+  const [articlesVersion, setArticlesVersion] = useState<number>(0);
 
   const hTrans = HOME_TRANSLATION_MAP[locale] || HOME_TRANSLATION_MAP.en;
+
+  // Listen to custom article updates across tabs and within the app
+  useEffect(() => {
+    const handleArticlesUpdate = () => {
+      setArticlesVersion((prev) => prev + 1);
+    };
+    window.addEventListener("custom_articles_updated", handleArticlesUpdate);
+    window.addEventListener("storage", handleArticlesUpdate);
+    return () => {
+      window.removeEventListener("custom_articles_updated", handleArticlesUpdate);
+      window.removeEventListener("storage", handleArticlesUpdate);
+    };
+  }, []);
 
   // Parse URL pathname to determine initial route page
   const parseCurrentPath = useCallback(() => {
@@ -539,14 +553,19 @@ export default function App() {
     currentPage === "editor" ||
     currentPage === "admin";
 
+  // Memoized blog posts list for current locale, automatically reactive to new published articles
+  const currentBlogPosts = useMemo(() => {
+    return getBlogPostsForLocale(locale);
+  }, [locale, articlesVersion]);
+
   // Extract variables for specific blog post route
-  const getBlogPost = () => {
+  const getBlogPost = useCallback(() => {
     if (currentPage.startsWith("blog/")) {
       const id = currentPage.replace("blog/", "");
-      return getBlogPostsForLocale(locale).find((p) => p.id === id);
+      return currentBlogPosts.find((p) => p.id === id);
     }
     return undefined;
-  };
+  }, [currentPage, currentBlogPosts]);
 
   const activeBlogPost = getBlogPost();
 
@@ -848,7 +867,7 @@ export default function App() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Render first 3 posts */}
-                    {getBlogPostsForLocale(locale).slice(0, 3).map((post) => (
+                    {currentBlogPosts.slice(0, 3).map((post) => (
                       <BlogCard
                         key={post.id}
                         post={post}
@@ -857,7 +876,7 @@ export default function App() {
                     ))}
                     <noscript>
                       <div className="hidden" style={{ display: "none" }}>
-                        {getBlogPostsForLocale(locale).map((post) => (
+                        {currentBlogPosts.map((post) => (
                           <a key={post.id} href={`/${locale}/blog/${post.id}`}>
                             {post.title}
                           </a>
@@ -946,7 +965,7 @@ export default function App() {
                   </div>
 
                   {/* Render all articles with inline AdSenseAd placements after every 3 cards */}
-                  {getBlogPostsForLocale(locale).map((post, i) => (
+                  {currentBlogPosts.map((post, i) => (
                     <Fragment key={post.id}>
                       <BlogCard
                         post={post}
@@ -961,7 +980,7 @@ export default function App() {
                   ))}
                   <noscript>
                     <div className="hidden" style={{ display: "none" }}>
-                      {getBlogPostsForLocale(locale).map((post) => (
+                      {currentBlogPosts.map((post) => (
                         <a key={post.id} href={`/${locale}/blog/${post.id}`}>
                           {post.title}
                         </a>
