@@ -280,15 +280,76 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
   // Extract headings for the Table of Contents dynamically
   const headings = post.content
     .map((p, index) => {
-      if (p.startsWith("H2: ")) {
+      if (p.startsWith("H2: ") || p.startsWith("## ")) {
         return {
-          title: p.replace(/^H2:\s*/, ""),
+          title: p.replace(/^(?:H2:\s*|##\s*)/, ""),
           id: `section-${index}`,
         };
       }
       return null;
     })
     .filter(Boolean) as Array<{ title: string; id: string }>;
+
+  // Helper to render Markdown tables cleanly
+  const renderMarkdownTable = (tableText: string) => {
+    const rawLines = tableText.trim().split("\n").map((l) => l.trim()).filter(Boolean);
+    if (rawLines.length === 0) return null;
+
+    const rows = rawLines.map((line) => {
+      return line
+        .replace(/^\||\|$/g, "")
+        .split("|")
+        .map((c) => c.trim());
+    });
+
+    // Check if second row is divider row (contains dashes ---)
+    const hasDivider = rows.length > 1 && rows[1].every((c) => /^[-:\s]+$/.test(c));
+    const headerRow = hasDivider ? rows[0] : null;
+    const bodyRows = hasDivider ? rows.slice(2) : rows;
+
+    return (
+      <div className="overflow-x-auto my-6 rounded-2xl border border-slate-200 shadow-xs bg-white">
+        <table className="min-w-full divide-y divide-slate-200 text-sm text-slate-700">
+          {headerRow && (
+            <thead className="bg-slate-50">
+              <tr>
+                {headerRow.map((cell, idx) => (
+                  <th
+                    key={idx}
+                    className="px-4 py-3.5 text-left font-black text-slate-900 text-xs md:text-sm uppercase tracking-wider border-b border-slate-200"
+                  >
+                    {cell}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          )}
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {bodyRows.map((row, rIdx) => (
+              <tr key={rIdx} className={rIdx % 2 === 0 ? "bg-white" : "bg-slate-50/60 hover:bg-blue-50/40"}>
+                {row.map((cell, cIdx) => (
+                  <td key={cIdx} className="px-4 py-3 text-xs md:text-sm font-medium text-slate-700">
+                    {renderParagraphWithLinks(cell, onNavigate)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  // Helper to render callouts or tip boxes
+  const renderCallout = (text: string) => {
+    const cleanText = text.replace(/^>\s*/, "");
+    return (
+      <div className="my-5 p-4 md:p-5 rounded-2xl bg-blue-50/70 border border-blue-200/80 text-slate-800 text-sm md:text-base leading-relaxed flex items-start gap-3 shadow-xs">
+        <span className="text-xl shrink-0 mt-0.5">💡</span>
+        <div className="flex-1 font-medium">{renderParagraphWithLinks(cleanText, onNavigate)}</div>
+      </div>
+    );
+  };
 
   // Render paragraphs supporting inline rich link conversions
   const renderParagraphWithLinks = (text: string, onLinkClick: (pageId: string) => void) => {
@@ -486,11 +547,19 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
         {/* Rich article paragraph blocks with custom renders */}
         <div className="space-y-6 text-slate-700 text-base md:text-lg leading-relaxed font-normal">
           {(() => {
-            const firstH2Index = post.content.findIndex((p) => p.startsWith("H2: "));
+            const firstH2Index = post.content.findIndex((p) => p.startsWith("H2: ") || p.startsWith("## "));
             const middleIndex = Math.floor(post.content.length / 2);
             return post.content.map((paragraph, index) => {
-              const isH2 = paragraph.startsWith("H2: ");
+              const isH2 = paragraph.startsWith("H2: ") || paragraph.startsWith("## ");
+              const isH3 = paragraph.startsWith("H3: ") || paragraph.startsWith("### ");
               const isCodeBlock = paragraph.startsWith("```");
+              const isCallout = paragraph.startsWith("> ") || paragraph.startsWith("💡") || paragraph.startsWith("📌");
+              const isTable =
+                paragraph.includes("|") &&
+                paragraph.split("\n").filter((l) => l.trim().startsWith("|") && l.trim().endsWith("|")).length >= 2;
+              const isList =
+                paragraph.split("\n").length > 1 &&
+                paragraph.split("\n").every((l) => /^\s*[-*•\d+.]\s+/.test(l.trim()) || l.trim() === "");
 
               const showAdSense1 = isH2 && index === firstH2Index;
               const showAdSense2 = index === middleIndex;
@@ -512,15 +581,33 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
                   {isH2 ? (
                     <h2
                       id={`section-${index}`}
-                      className="text-xl md:text-2xl font-extrabold font-display text-slate-930 pt-6 mt-8 border-t border-slate-100 flex items-center gap-2.5 scroll-mt-24"
+                      className="text-xl md:text-2xl font-extrabold font-display text-slate-900 pt-6 mt-8 border-t border-slate-100 flex items-center gap-2.5 scroll-mt-24"
                     >
                       <BookOpen className="w-5.5 h-5.5 text-blue-600 shrink-0" />
-                      <span>{paragraph.replace(/^H2:\s*/, "")}</span>
+                      <span>{paragraph.replace(/^(?:H2:\s*|##\s*)/, "")}</span>
                     </h2>
+                  ) : isH3 ? (
+                    <h3 className="text-lg md:text-xl font-bold font-display text-slate-900 pt-4 mt-4 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0"></span>
+                      <span>{paragraph.replace(/^(?:H3:\s*|###\s*)/, "")}</span>
+                    </h3>
+                  ) : isTable ? (
+                    renderMarkdownTable(paragraph)
+                  ) : isCallout ? (
+                    renderCallout(paragraph)
                   ) : isCodeBlock ? (
                     <pre className="bg-slate-900 text-slate-100 rounded-xl p-4 md:p-6 font-mono text-xs md:text-sm overflow-x-auto shadow-inner leading-relaxed border border-slate-850">
                       <code>{paragraph.replace(/```text\n|```/g, "")}</code>
                     </pre>
+                  ) : isList ? (
+                    <ul className="space-y-2.5 my-4 bg-slate-50/70 border border-slate-200/70 p-4 md:p-5 rounded-2xl">
+                      {paragraph.split("\n").filter((l) => l.trim()).map((li, lIdx) => (
+                        <li key={lIdx} className="flex items-start gap-2.5 text-slate-700 text-sm md:text-base">
+                          <span className="text-blue-600 font-bold shrink-0 mt-0.5">•</span>
+                          <span className="flex-1">{renderParagraphWithLinks(li.replace(/^\s*[-*•\d+.]\s+/, ""), onNavigate)}</span>
+                        </li>
+                      ))}
+                    </ul>
                   ) : (
                     <div className="space-y-4">
                       <p>{renderParagraphWithLinks(paragraph, onNavigate)}</p>

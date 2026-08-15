@@ -22,6 +22,12 @@ import {
   getSitemapStats,
 } from "../../utils/sitemapGenerator";
 import {
+  parseRawArticleContent,
+  sanitizeSlug,
+  detectCategory,
+  ParsedArticleDraft,
+} from "../../utils/articleAutoParser";
+import {
   CheckCircle2,
   CheckCircle,
   AlertCircle,
@@ -60,6 +66,11 @@ import {
   Globe,
   Code2,
   CheckCheck,
+  Wand2,
+  FileUp,
+  Table as TableIcon,
+  ListFilter,
+  Sliders,
 } from "lucide-react";
 import { AdSenseAd } from "../ads/AdSenseAd";
 
@@ -162,6 +173,63 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
   const [copiedSnippetArticleId, setCopiedSnippetArticleId] = useState<string | null>(null);
   const [publishedSuccessArticle, setPublishedSuccessArticle] = useState<BlogPost | null>(null);
   const [isEditingExistingId, setIsEditingExistingId] = useState<string | null>(null);
+
+  // Smart Auto-Parser & Import Modal State
+  const [showSmartImportModal, setShowSmartImportModal] = useState(false);
+  const [smartImportInput, setSmartImportInput] = useState("");
+  const [parsedDraftPreview, setParsedDraftPreview] = useState<ParsedArticleDraft | null>(null);
+
+  // Handle live input change in Smart Import Modal
+  const handleSmartImportInputChange = (val: string) => {
+    setSmartImportInput(val);
+    if (val.trim().length > 10) {
+      const parsed = parseRawArticleContent(val);
+      setParsedDraftPreview(parsed);
+    } else {
+      setParsedDraftPreview(null);
+    }
+  };
+
+  // Apply parsed draft into editor state
+  const handleApplySmartDraft = (draftToApply?: ParsedArticleDraft) => {
+    const targetDraft = draftToApply || parsedDraftPreview || parseRawArticleContent(smartImportInput);
+    if (!targetDraft.title && targetDraft.paragraphs.length === 0) {
+      showToast("يرجى لصق نص المقال أولاً للبدء بالتصنيف.");
+      return;
+    }
+
+    setTitle(targetDraft.title);
+    setSlug(targetDraft.slug);
+    setCategory(targetDraft.category);
+    setFocusKeyword(targetDraft.focusKeyword);
+    setKeywords(targetDraft.keywords);
+    setSummary(targetDraft.summary);
+    setMetaDescription(targetDraft.metaDescription);
+    setParagraphs(targetDraft.paragraphs);
+    setRawText(targetDraft.rawBodyText);
+    setShowSmartImportModal(false);
+    setSmartImportInput("");
+    setParsedDraftPreview(null);
+    showToast(`✨ تم استيراد وتصنيف مقال "${targetDraft.title}" وتوزيع جميع العناوين والجداول بنجاح!`);
+  };
+
+  // Smart Auto-parse from raw markdown text directly
+  const handleSmartParseFromRawText = () => {
+    if (!rawText.trim()) {
+      showToast("يرجى كتابة أو لصق نص المقال أولاً.");
+      return;
+    }
+    const parsed = parseRawArticleContent(rawText);
+    setTitle(parsed.title);
+    setSlug(parsed.slug);
+    setCategory(parsed.category);
+    setFocusKeyword(parsed.focusKeyword);
+    setKeywords(parsed.keywords);
+    setSummary(parsed.summary);
+    setMetaDescription(parsed.metaDescription);
+    setParagraphs(parsed.paragraphs);
+    showToast("✨ تم تصنيف المقال وتمييز العناوين والجداول وتحديث البيانات بنجاح!");
+  };
 
   // Load custom articles list
   const refreshCustomArticles = useCallback(() => {
@@ -1005,6 +1073,15 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
           {/* Top Quick Actions */}
           <div className="flex flex-wrap items-center gap-3">
             <button
+              onClick={() => setShowSmartImportModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-50 to-blue-50 hover:from-indigo-100 hover:to-blue-100 text-indigo-800 border border-indigo-200 font-bold text-sm rounded-xl shadow-2xs transition-transform active:scale-95 cursor-pointer"
+              title="لصق مقال كامل وتصنيف جميع عناصره وجداوله تلقائياً"
+            >
+              <Wand2 className="w-4 h-4 text-indigo-600 animate-pulse" />
+              <span>استيراد وتصنيف ذكي (Auto-Parser)</span>
+            </button>
+
+            <button
               onClick={handlePublish}
               className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-md shadow-blue-500/20 transition-transform active:scale-95 cursor-pointer"
             >
@@ -1124,18 +1201,38 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Editor Column (2 Cols) */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Quick Templates Selector */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-150 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-blue-600 shrink-0" />
-                <span className="text-xs font-bold text-slate-800">قوالب مقالات جاهزة وعالية الترتيب:</span>
+            {/* Quick Templates & Smart Auto-Parser Banner */}
+            <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200/80 rounded-2xl p-4.5 space-y-3.5 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-2xs">
+                    <Wand2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900">المستورد والمصنف التلقائي الذكي (Smart Auto-Parser)</h4>
+                    <p className="text-[11px] text-slate-500">
+                      الصق مقالك بصيغة خام، وسيقوم النظام فوراً بفرز العناوين، الجداول، الكلمات المفتاحية، والفئات.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowSmartImportModal(true)}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  <FileUp className="w-3.5 h-3.5" />
+                  <span>فتح نافذة الاستيراد الذكي</span>
+                </button>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+
+              {/* Quick Templates */}
+              <div className="pt-3 border-t border-indigo-100/80 flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-600">أو ابدأ بقالب جاهز:</span>
                 {ARTICLE_TEMPLATES.map((tmpl) => (
                   <button
                     key={tmpl.id}
                     onClick={() => applyTemplate(tmpl)}
-                    className="px-3 py-1.5 bg-white hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-xs font-semibold text-blue-700 transition-colors shadow-2xs cursor-pointer"
+                    className="px-2.5 py-1 bg-white hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-xs font-semibold text-blue-700 transition-colors shadow-2xs cursor-pointer"
                   >
                     {tmpl.name}
                   </button>
@@ -1163,7 +1260,7 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
                   type="text"
                   value={title}
                   onChange={(e) => handleTitleChange(e.target.value)}
-                  placeholder="مثال: الدليل الشامل لإنشاء كود الـ QR باحترافية وتصميمه مجاناً"
+                  placeholder="مثال: QR Codes for Cafes: The Complete 2026 Guide"
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -1180,7 +1277,7 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
                     type="text"
                     value={slug}
                     onChange={(e) => setSlug(generateSlugFromText(e.target.value))}
-                    placeholder="free-qr-code-generator-guide"
+                    placeholder="qr-codes-for-cafes"
                     className="flex-1 bg-transparent font-bold text-blue-600 focus:outline-none ml-1"
                   />
                 </div>
@@ -1189,18 +1286,28 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
 
             {/* Paragraphs and Content Builder */}
             <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-5 shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div className="space-y-0.5">
                   <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                     <AlignLeft className="w-4 h-4 text-blue-600" />
-                    <span>محتوى المقال وفقراته (Content & Headings)</span>
+                    <span>محتوى المقال وفقراته (Content, Headings & Tables)</span>
                   </h3>
                   <p className="text-xs text-slate-500">
-                    استخدم العناوين الفرعية H2 لتقسيم المقال، ووزع الكلمات المفتاحية بشكل متناسق.
+                    يدعم العناوين الفرعية (H2 / H3)، الجداول بصيغة Markdown، والقوائم والتلميحات.
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {rawMarkdownMode && (
+                    <button
+                      onClick={handleSmartParseFromRawText}
+                      className="text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                      title="فرز وتصنيف النص الموجود واستخراج البيانات تلقائياً"
+                    >
+                      <Wand2 className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>فرز وتصنيف ذكي للمقال</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => setRawMarkdownMode(!rawMarkdownMode)}
                     className="text-xs font-semibold text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
@@ -1212,16 +1319,26 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
 
               {/* RAW TEXT MODE */}
               {rawMarkdownMode ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-600">
+                    <span>💡 يمكنك لصق النص كاملاً وسيتعرف النظام على العناوين H2/H3 والجداول | Column 1 | Column 2 | تلقائياً.</span>
+                    <button
+                      onClick={handleSmartParseFromRawText}
+                      className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>تحليل فوري</span>
+                    </button>
+                  </div>
                   <textarea
                     value={rawText}
                     onChange={(e) => handleRawTextChange(e.target.value)}
                     rows={16}
-                    placeholder="الصق أو اكتب المقال بالكامل هنا... استخدم 'H2: عنوان القسم' لبدء قسم جديد"
-                    className="w-full p-4 border border-slate-200 rounded-xl text-sm leading-relaxed text-slate-800 font-sans focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="الصق أو اكتب المقال بالكامل هنا...&#10;&#10;مثال:&#10;H2: عنوان القسم الأول&#10;شرح الفقرة بالتفصيل...&#10;&#10;| Feature | Cafe Benefit |&#10;| Contactless Menu | Speeds up table turns |"
+                    className="w-full p-4 border border-slate-200 rounded-xl text-sm leading-relaxed text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <p className="text-[11px] text-slate-400">
-                    💡 تلميح: اكتب في بداية السطر <strong>H2: عنوان القسم</strong> لتحويله إلى عنوان رئيسي في المقال تلقائياً.
+                    💡 تلميح: اكتب في بداية السطر <strong>H2: عنوان القسم</strong> أو <strong>## عنوان القسم</strong> لإنشاء عنوان رئيسي، و <strong>H3: عنوان فرعي</strong> للعنوان الفرعي.
                   </p>
                 </div>
               ) : (
@@ -2066,6 +2183,241 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
               <div className="absolute bottom-2 left-2 bg-slate-900/90 text-slate-400 text-[10px] font-mono px-2 py-1 rounded-md border border-slate-800">
                 معاينة أول 3000 حرف من خريطة الموقع
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* SMART ARTICLE AUTO-PARSER & CLASSIFIER MODAL */}
+      {/* ======================================================== */}
+      {showSmartImportModal && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-4xl w-full border border-slate-200 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 my-auto">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 sm:p-6 flex items-start justify-between gap-4 border-b border-slate-800 shrink-0">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-bold font-mono">
+                  <Wand2 className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                  <span>المستورد والمصنف التلقائي الذكي (Smart Auto-Classifier & Parser)</span>
+                </div>
+                <h3 className="text-lg sm:text-2xl font-black font-display text-white">
+                  استيراد وتصنيف المقال بالكامل بضغطة زر واحدة
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                  الصق نص المقال الخام هنا (مع العناوين وسيو والكلمات المفتاحية والجداول)، وسيتولى النظام فرز كل عنصر ووضعه في مكانه المخصص تلقائياً.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowSmartImportModal(false)}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors cursor-pointer shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
+              {/* Quick Actions Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2.5 bg-indigo-50/70 border border-indigo-150 p-3 rounded-2xl">
+                <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-indigo-600" />
+                  <span>هل ترغب في تجربة مثال جاهز؟</span>
+                </span>
+                <button
+                  onClick={() => {
+                    const sample = `QR Codes for Cafes: The Complete 2026 Guide
+
+SEO Title: QR Codes for Cafes – Create a Free Cafe QR Code
+
+Meta Description: Learn how to use QR codes for cafes to share digital menus, WiFi, ordering pages, reviews, payments, and promotions with customers instantly.
+
+Primary Keyword: QR Codes for Cafes
+
+URL Slug: /qr-codes-for-cafes
+
+Secondary Keywords: cafe QR code, QR code for cafe, coffee shop QR code, digital menu QR, cafe WiFi QR code, cafe payment QR, restaurant QR codes
+
+## 1. Why Cafes and Coffee Shops Need QR Codes in 2026
+Modern coffee shops and cafes thrive on speed, customer satisfaction, and repeat business. Dynamic QR codes provide instant, contactless connections from physical counters to digital menus, social accounts, and WiFi networks without requiring any app download.
+
+## 2. Top Use Cases for Cafe QR Codes
+
+| QR Code Type | Best Cafe Location | Main Benefit |
+| Contactless Menu QR | On every table & acrylic tent | Faster ordering, instant price updates |
+| Free WiFi QR | Counter, walls & napkins | Zero typing, instant one-tap WiFi login |
+| Google Review QR | Receipt & exit doors | Boosts 5-star local ratings by 300% |
+| Loyalty & Deals QR | Cup sleeves & takeaway bags | Drives repeat visits and member signups |
+
+## 3. Step-by-Step: How to Create a Cafe QR Code
+1. Open our Free QR Code Generator tool.
+2. Select your desired type: URL, WiFi, or Social.
+3. Paste your digital menu link or enter cafe details.
+4. Customize colors and add your coffee shop logo.
+5. Download in high-resolution vector format ready for printing.
+
+> 💡 Pro-Tip: Print a test QR code before printing hundreds of cup sleeves to guarantee high scannability under cafe ambient lighting!`;
+                    handleSmartImportInputChange(sample);
+                  }}
+                  className="px-3 py-1.5 bg-white hover:bg-indigo-600 hover:text-white border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 transition-colors shadow-2xs cursor-pointer"
+                >
+                  تحميل مثال مقال المقاهي (Cafes Guide Example)
+                </button>
+              </div>
+
+              {/* Textarea Input */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <span>الصق نص المقال الخام هنا (Raw Article Text):</span>
+                  </label>
+                  <span className="text-xs font-mono text-slate-400">
+                    {smartImportInput.length.toLocaleString()} حرفاً
+                  </span>
+                </div>
+                <textarea
+                  value={smartImportInput}
+                  onChange={(e) => handleSmartImportInputChange(e.target.value)}
+                  rows={10}
+                  placeholder={`الصق المقال هنا... مثال:
+QR Codes for Cafes: The Complete 2026 Guide
+
+SEO Title: QR Codes for Cafes – Create a Free Cafe QR Code
+Meta Description: Learn how to use QR codes for cafes...
+Primary Keyword: QR Codes for Cafes
+URL Slug: /qr-codes-for-cafes
+Secondary Keywords: cafe QR code, coffee shop QR code, wifi qr
+
+## 1. Why Cafes Need QR Codes
+Modern cafes thrive on speed...
+
+| Type | Use Case |
+| Menu | Contactless dining |`}
+                  className="w-full p-4 border border-slate-200 rounded-2xl text-xs sm:text-sm font-mono leading-relaxed text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
+                />
+              </div>
+
+              {/* LIVE PARSED BREAKDOWN PREVIEW */}
+              {parsedDraftPreview && (
+                <div className="space-y-4 bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>معاينة الفرز والتصنيف التلقائي الذكي (Live Detection Breakdown):</span>
+                    </h4>
+                    <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+                      تم الاكتشاف بنجاح ✓
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {/* Title */}
+                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 block uppercase">عنوان المقال (H1 Title):</span>
+                      <p className="font-bold text-slate-900 text-xs sm:text-sm">
+                        {parsedDraftPreview.title || "—"}
+                      </p>
+                    </div>
+
+                    {/* Slug */}
+                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 block uppercase">الرابط الدائم (Slug URL):</span>
+                      <p className="font-mono font-bold text-blue-600">
+                        /{parsedDraftPreview.slug || "—"}
+                      </p>
+                    </div>
+
+                    {/* Primary Keyword */}
+                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 block uppercase">الكلمة المفتاحية المستهدفة (Focus Keyword):</span>
+                      <p className="font-bold text-indigo-700">
+                        {parsedDraftPreview.focusKeyword || "—"}
+                      </p>
+                    </div>
+
+                    {/* Category */}
+                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 block uppercase">تصنيف الفئة التلقائي (Category):</span>
+                      <span className="inline-block px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
+                        📁 {parsedDraftPreview.category}
+                      </span>
+                    </div>
+
+                    {/* Meta Description */}
+                    <div className="sm:col-span-2 bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 block uppercase">وصف الميتا لمحركات البحث (Meta Description):</span>
+                      <p className="text-slate-700 leading-relaxed">
+                        {parsedDraftPreview.metaDescription || "—"}
+                      </p>
+                    </div>
+
+                    {/* Secondary Keywords Tags */}
+                    {parsedDraftPreview.keywords.length > 0 && (
+                      <div className="sm:col-span-2 bg-white p-3 rounded-xl border border-slate-200 space-y-1.5">
+                        <span className="text-[10px] font-bold text-slate-400 block uppercase">
+                          الكلمات المفتاحية المفصولة تلقائياً ({parsedDraftPreview.keywords.length}):
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {parsedDraftPreview.keywords.map((kw, kwIdx) => (
+                            <span
+                              key={kwIdx}
+                              className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-semibold text-[11px] border border-blue-200 flex items-center gap-1"
+                            >
+                              <span>#{kw}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Stats */}
+                    <div className="sm:col-span-2 flex flex-wrap items-center gap-3 pt-1 text-[11px] text-slate-600 font-mono">
+                      <span className="bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+                        📄 الفقرات: <strong>{parsedDraftPreview.paragraphs.length}</strong>
+                      </span>
+                      <span className="bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+                        📑 العناوين الفرعية (H2/H3):{" "}
+                        <strong>
+                          {parsedDraftPreview.paragraphs.filter((p) => p.startsWith("H2: ") || p.startsWith("H3: ") || p.startsWith("## ")).length}
+                        </strong>
+                      </span>
+                      <span className="bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+                        📊 الجداول:{" "}
+                        <strong>
+                          {parsedDraftPreview.paragraphs.filter((p) => p.includes("|") && p.split("\n").length >= 2).length}
+                        </strong>
+                      </span>
+                      <span className="bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+                        📝 الكلمات: <strong>{parsedDraftPreview.wordCount}</strong>
+                      </span>
+                      <span className="bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+                        ⏱️ وقت القراءة: <strong>{parsedDraftPreview.readTime}</strong>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 border-t border-slate-200 p-4 sm:p-5 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+              <button
+                onClick={() => setShowSmartImportModal(false)}
+                className="px-4 py-2.5 text-slate-600 hover:bg-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+
+              <button
+                onClick={() => handleApplySmartDraft()}
+                disabled={!smartImportInput.trim()}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-md shadow-blue-500/20 transition-transform active:scale-95 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>تطبيق وفصل المقال فوراً إلى المحرر</span>
+              </button>
             </div>
           </div>
         </div>
