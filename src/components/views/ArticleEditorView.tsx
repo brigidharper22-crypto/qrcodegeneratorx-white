@@ -743,6 +743,27 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
               <ShieldCheck className="w-4 h-4" />
               <span>{isAuthenticating ? "جارٍ التحقق والتشفير..." : "تسجيل الدخول وفتح الاستوديو"}</span>
             </button>
+
+            {/* Quick credentials hint */}
+            <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/60 text-xs text-slate-300 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-400">بيانات الدخول الافتراضية:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUsernameInput("admin");
+                    setPasswordInput("admin1234");
+                  }}
+                  className="text-[11px] text-blue-400 hover:text-blue-300 font-bold underline cursor-pointer"
+                >
+                  تعبئة تلقائية (admin1234)
+                </button>
+              </div>
+              <div className="font-mono text-[11px] flex justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                <span>المستخدم: <strong className="text-white">admin</strong></span>
+                <span>كلمة المرور: <strong className="text-white">admin1234</strong></span>
+              </div>
+            </div>
           </form>
 
           <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">

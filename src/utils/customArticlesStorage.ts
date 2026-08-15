@@ -150,7 +150,13 @@ export async function verifyAdminLogin(usernameInput: string, passwordInput: str
   // Default initial check if never configured before
   if (creds.passwordHash === "DEFAULT_UNINITIALIZED") {
     // Initial default credentials
-    if (usernameInput.trim() === "admin" && (passwordInput === "Admin#2026" || passwordInput === "admin123" || passwordInput === "admin")) {
+    if (
+      usernameInput.trim() === "admin" &&
+      (passwordInput === "admin1234" ||
+        passwordInput === "admin123" ||
+        passwordInput === "Admin#2026" ||
+        passwordInput === "admin")
+    ) {
       const initialHash = await hashPassword(passwordInput);
       localStorage.setItem(ADMIN_AUTH_KEY, JSON.stringify({ username: "admin", passwordHash: initialHash }));
       sessionStorage.setItem(ADMIN_SESSION_KEY, `session_${Date.now()}_${Math.random().toString(36).slice(2)}`);
