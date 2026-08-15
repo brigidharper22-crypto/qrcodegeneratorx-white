@@ -73,88 +73,126 @@ export function detectCategory(text: string, currentCategory?: string): string {
  * and parses body content distinguishing Headings (H2/H3), Tables, Lists, Callouts, and Paragraphs.
  */
 export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
-  const normalized = rawInput.replace(/\r\n/g, "\n");
-  const lines = normalized.split("\n");
+  if (!rawInput || !rawInput.trim()) {
+    return {
+      title: "",
+      slug: "",
+      focusKeyword: "",
+      metaDescription: "",
+      category: "Guides",
+      summary: "",
+      keywords: [],
+      estimatedReadTime: "1 min read",
+      paragraphs: [""],
+      rawBodyText: "",
+      detectedStats: {
+        headingsCount: 0,
+        tablesCount: 0,
+        paragraphsCount: 0,
+        wordsCount: 0,
+        keywordsCount: 0,
+      },
+    };
+  }
 
-  let title = "";
-  let slug = "";
-  let focusKeyword = "";
-  let metaDescription = "";
-  let category = "";
-  let summary = "";
+  const normalized = rawInput.replace(/\r\n/g, "\n");
+  const allLines = normalized.split("\n");
+
+  let extractedTitle = "";
+  let extractedSeoTitle = "";
+  let extractedSlug = "";
+  let extractedFocusKeyword = "";
+  let extractedMetaDescription = "";
+  let extractedCategory = "";
+  let extractedSummary = "";
   const rawKeywordsList: string[] = [];
 
-  const bodyLines: string[] = [];
-  let isParsingBody = false;
+  const bodyLineCandidates: { lineIndex: number; text: string }[] = [];
+  let foundFirstNonMetadataLine = false;
+  let firstLineAsTitleIndex = -1;
 
-  for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i];
+  // Pass 1: Parse and classify lines into Metadata or Body
+  for (let i = 0; i < allLines.length; i++) {
+    const rawLine = allLines[i];
     const trimmed = rawLine.trim();
 
     if (!trimmed) {
-      if (isParsingBody) {
-        bodyLines.push("");
+      if (foundFirstNonMetadataLine) {
+        bodyLineCandidates.push({ lineIndex: i, text: "" });
       }
       continue;
     }
 
-    // Check if line is metadata
-    const titleMatch = trimmed.match(/^(?:article\s+title|seo\s+title|title|عنوان\s+المقال|العنوان)\s*[:：\-–]\s*(.+)$/i);
+    // Check metadata patterns
+    const seoTitleMatch = trimmed.match(/^(?:seo\s+title|عنوان\s+سيو)\s*[:：\-–]\s*(.+)$/i);
+    const articleTitleMatch = trimmed.match(/^(?:article\s+title|title|h1|عنوان\s+المقال|العنوان)\s*[:：\-–]\s*(.+)$/i);
+    const h1MarkdownMatch = trimmed.match(/^#\s+(.+)$/);
     const descMatch = trimmed.match(/^(?:meta\s+description|description|seo\s+description|الوصف\s+المختصر|الوصف|وصف\s+سيو)\s*[:：\-–]\s*(.+)$/i);
-    const focusKwMatch = trimmed.match(/^(?:primary\s+keyword|focus\s+keyword|main\s+keyword|الكلمة\s+المفتاحية\s+الرئيسية|الكلمة\s+الدلالية\s+الرئيسية|الكلمة\s+الرئيسية)\s*[:：\-–]\s*(.+)$/i);
-    const slugMatch = trimmed.match(/^(?:url\s+slug|slug|url|رابط\s+المقال|الرابط|الاسم\s+اللطيف)\s*[:：\-–]\s*(.+)$/i);
+    const focusKwMatch = trimmed.match(/^(?:primary\s+keyword|focus\s+keyword|main\s+keyword|target\s+keyword|الكلمة\s+المفتاحية\s+الرئيسية|الكلمة\s+الدلالية\s+الرئيسية|الكلمة\s+الرئيسية|الكلمة\s+المفتاحية)\s*[:：\-–]\s*(.+)$/i);
+    const slugMatch = trimmed.match(/^(?:url\s+slug|slug|permalink|url|رابط\s+المقال|الرابط|الاسم\s+اللطيف)\s*[:：\-–]\s*(.+)$/i);
     const kwMatch = trimmed.match(/^(?:secondary\s+keywords|keywords\s+tags|keywords|tags|الكلمات\s+الدلالية|الكلمات\s+المفتاحية|الوسوم)\s*[:：\-–]\s*(.+)$/i);
     const catMatch = trimmed.match(/^(?:category|classification|التصنيف|القسم)\s*[:：\-–]\s*(.+)$/i);
     const sumMatch = trimmed.match(/^(?:summary|quick\s+summary|الملخص|ملخص\s+المقال)\s*[:：\-–]\s*(.+)$/i);
 
-    if (titleMatch && !title) {
-      title = titleMatch[1].trim();
+    if (seoTitleMatch) {
+      extractedSeoTitle = seoTitleMatch[1].trim();
       continue;
     }
-    if (descMatch && !metaDescription) {
-      metaDescription = descMatch[1].trim();
+    if (articleTitleMatch) {
+      extractedTitle = articleTitleMatch[1].trim();
       continue;
     }
-    if (focusKwMatch && !focusKeyword) {
-      focusKeyword = focusKwMatch[1].trim();
+    if (h1MarkdownMatch) {
+      extractedTitle = h1MarkdownMatch[1].trim();
       continue;
     }
-    if (slugMatch && !slug) {
-      slug = sanitizeSlug(slugMatch[1].trim());
+    if (descMatch) {
+      extractedMetaDescription = descMatch[1].trim();
+      continue;
+    }
+    if (focusKwMatch) {
+      extractedFocusKeyword = focusKwMatch[1].trim();
+      continue;
+    }
+    if (slugMatch) {
+      extractedSlug = sanitizeSlug(slugMatch[1].trim());
       continue;
     }
     if (kwMatch) {
       rawKeywordsList.push(kwMatch[1].trim());
       continue;
     }
-    if (catMatch && !category) {
-      category = catMatch[1].trim();
+    if (catMatch) {
+      extractedCategory = catMatch[1].trim();
       continue;
     }
-    if (sumMatch && !summary) {
-      summary = sumMatch[1].trim();
-      continue;
-    }
-
-    // First non-metadata line without heading prefix could be the article Title if title not yet set
-    if (!title && !isParsingBody && !trimmed.startsWith("#") && !trimmed.startsWith("|") && trimmed.length < 150) {
-      title = trimmed;
+    if (sumMatch) {
+      extractedSummary = sumMatch[1].trim();
       continue;
     }
 
-    // Otherwise, we have reached the actual article body!
-    isParsingBody = true;
-    bodyLines.push(rawLine);
+    // If no title yet, check if this first non-empty line looks like an H1 / Article Title
+    if (!extractedTitle && firstLineAsTitleIndex === -1 && !trimmed.startsWith("##") && !trimmed.startsWith("###") && !trimmed.startsWith("|") && !trimmed.startsWith(">") && trimmed.length < 160) {
+      extractedTitle = trimmed;
+      firstLineAsTitleIndex = i;
+      foundFirstNonMetadataLine = true;
+      continue;
+    }
+
+    foundFirstNonMetadataLine = true;
+    bodyLineCandidates.push({ lineIndex: i, text: rawLine });
   }
+
+  // Finalize Title (prefer SEO title or extracted title)
+  const finalTitle = extractedTitle || extractedSeoTitle || "New Article Title";
 
   // Parse keywords from rawKeywordsList
   const parsedKeywords: string[] = [];
   const seenKw = new Set<string>();
 
-  // Add focus keyword first if present
-  if (focusKeyword) {
-    seenKw.add(focusKeyword.toLowerCase());
-    parsedKeywords.push(focusKeyword);
+  if (extractedFocusKeyword) {
+    seenKw.add(extractedFocusKeyword.toLowerCase().trim());
+    parsedKeywords.push(extractedFocusKeyword.trim());
   }
 
   rawKeywordsList.forEach((kwChunk) => {
@@ -170,103 +208,127 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
       });
   });
 
-  // If title was found but no slug, auto-generate slug
-  if (!slug && title) {
-    slug = sanitizeSlug(title);
-  }
+  // Finalize Slug
+  const finalSlug = extractedSlug || sanitizeSlug(finalTitle) || "qr-article-guide";
 
-  // If no category explicitly matched, detect from content
-  const detectedCategoryName = detectCategory(`${title} ${focusKeyword} ${bodyLines.slice(0, 30).join(" ")}`, category);
+  // Finalize Meta Description and Summary
+  const finalMetaDescription = extractedMetaDescription || extractedSummary || "";
+  const finalSummary = extractedSummary || extractedMetaDescription || "";
 
-  // If no summary, use meta description or first body paragraph
-  if (!summary) {
-    if (metaDescription) {
-      summary = metaDescription;
-    } else {
-      const firstRealLine = bodyLines.find((l) => l.trim().length > 30 && !l.trim().startsWith("#") && !l.trim().startsWith("|"));
-      summary = firstRealLine ? firstRealLine.trim().slice(0, 200) + (firstRealLine.length > 200 ? "..." : "") : "";
-    }
-  }
-
-  // Parse structured blocks from bodyLines (distinguishing Headings, Tables, Lists, Callouts, Paragraphs)
-  const fullBodyRaw = bodyLines.join("\n").trim();
-  const rawParagraphBlocks = fullBodyRaw.split(/\n{2,}/);
-
+  // Pass 2: Parse Body lines into structured blocks (Headings, Tables, Callouts, Paragraphs)
+  const rawBodyLines = bodyLineCandidates.map((c) => c.text);
   const structuredParagraphs: string[] = [];
   let headingsCount = 0;
   let tablesCount = 0;
 
-  for (const block of rawParagraphBlocks) {
-    const trimmedBlock = block.trim();
-    if (!trimmedBlock) continue;
+  let currentTableLines: string[] = [];
+  let currentNormalLines: string[] = [];
 
-    // Check if it is a Table (contains pipes '|' on multiple lines or standard markdown table structure)
-    const blockLines = trimmedBlock.split("\n").map((l) => l.trim());
-    const isTable =
-      blockLines.length >= 2 &&
-      blockLines.filter((l) => l.startsWith("|") && l.endsWith("|")).length >= 2;
+  const flushNormalLines = () => {
+    if (currentNormalLines.length > 0) {
+      const blockText = currentNormalLines.join("\n").trim();
+      if (blockText) {
+        structuredParagraphs.push(blockText);
+      }
+      currentNormalLines = [];
+    }
+  };
 
-    if (isTable) {
-      tablesCount++;
-      structuredParagraphs.push(trimmedBlock);
+  const flushTable = () => {
+    if (currentTableLines.length > 0) {
+      const tableText = currentTableLines.join("\n").trim();
+      if (tableText) {
+        tablesCount++;
+        structuredParagraphs.push(tableText);
+      }
+      currentTableLines = [];
+    }
+  };
+
+  for (let i = 0; i < rawBodyLines.length; i++) {
+    const rawLine = rawBodyLines[i];
+    const trimmed = rawLine.trim();
+
+    // Check if line is part of a markdown table (starts or contains pipe |)
+    const isTableLine = trimmed.startsWith("|") || (trimmed.includes("|") && trimmed.split("|").length >= 3);
+
+    if (isTableLine) {
+      flushNormalLines();
+      currentTableLines.push(trimmed);
+      continue;
+    } else if (currentTableLines.length > 0) {
+      flushTable();
+    }
+
+    if (!trimmed) {
+      flushNormalLines();
       continue;
     }
 
-    // Check if it is an H2 Heading
-    const isH2Markdown = trimmedBlock.startsWith("## ");
-    const isH2Prefix = /^h2\s*[:：\-–]\s*/i.test(trimmedBlock);
-    const isNumberedHeading = /^(?:section\s+\d+|\d+\.)\s+[A-Z\u0621-\u064A]/i.test(trimmedBlock) && trimmedBlock.length < 100 && !trimmedBlock.includes(".");
-    
-    if (isH2Markdown || isH2Prefix) {
+    // Check for H2 heading
+    const isH2 = trimmed.startsWith("## ") || /^h2\s*[:：\-–]\s*/i.test(trimmed);
+    if (isH2) {
+      flushNormalLines();
       headingsCount++;
-      const cleanH2 = trimmedBlock.replace(/^##\s*/, "").replace(/^h2\s*[:：\-–]\s*/i, "").trim();
+      const cleanH2 = trimmed.replace(/^##\s*/, "").replace(/^h2\s*[:：\-–]\s*/i, "").trim();
       structuredParagraphs.push(`H2: ${cleanH2}`);
       continue;
     }
 
-    // Check if it is an H3 Heading
-    const isH3Markdown = trimmedBlock.startsWith("### ");
-    const isH3Prefix = /^h3\s*[:：\-–]\s*/i.test(trimmedBlock);
-    if (isH3Markdown || isH3Prefix) {
+    // Check for H3 heading
+    const isH3 = trimmed.startsWith("### ") || /^h3\s*[:：\-–]\s*/i.test(trimmed);
+    if (isH3) {
+      flushNormalLines();
       headingsCount++;
-      const cleanH3 = trimmedBlock.replace(/^###\s*/, "").replace(/^h3\s*[:：\-–]\s*/i, "").trim();
+      const cleanH3 = trimmed.replace(/^###\s*/, "").replace(/^h3\s*[:：\-–]\s*/i, "").trim();
       structuredParagraphs.push(`H3: ${cleanH3}`);
       continue;
     }
 
-    // Check if single line looking like a strong major heading (e.g., short, capitalized, no ending period, preceded by number)
-    if (
-      blockLines.length === 1 &&
-      trimmedBlock.length < 85 &&
-      (isNumberedHeading || /^(?:why|how|what|top\s+\d+|best|benefits|step\s+\d+|guide|مقدمة|أهمية|كيفية|خطوات|أفضل|مميزات)\b/i.test(trimmedBlock)) &&
-      !trimmedBlock.endsWith(".") &&
-      !trimmedBlock.endsWith("،")
-    ) {
-      headingsCount++;
-      structuredParagraphs.push(`H2: ${trimmedBlock}`);
+    // Check for standalone callout (> or 💡)
+    const isCallout = trimmed.startsWith("> ") || trimmed.startsWith("💡") || trimmed.startsWith("📌");
+    if (isCallout) {
+      flushNormalLines();
+      structuredParagraphs.push(trimmed);
       continue;
     }
 
-    // Standard paragraph, list, or callout
-    structuredParagraphs.push(trimmedBlock);
+    // Normal paragraph text line
+    currentNormalLines.push(rawLine);
   }
 
-  // Calculate estimated read time (avg 200 words/min)
-  const totalWords = fullBodyRaw ? fullBodyRaw.split(/\s+/).filter(Boolean).length : 0;
-  const minutes = Math.max(1, Math.ceil(totalWords / 200));
+  flushNormalLines();
+  flushTable();
+
+  // If no summary was specified, extract from the first paragraph
+  const derivedSummary =
+    finalSummary ||
+    structuredParagraphs.find((p) => !p.startsWith("H2: ") && !p.startsWith("H3: ") && !p.includes("|") && p.length > 20)?.slice(0, 220) ||
+    "";
+
+  // Auto detect category
+  const detectedCategory = detectCategory(
+    `${finalTitle} ${extractedFocusKeyword} ${parsedKeywords.join(" ")} ${structuredParagraphs.slice(0, 3).join(" ")}`,
+    extractedCategory
+  );
+
+  // Compute stats
+  const fullBodyRawText = structuredParagraphs.join("\n\n");
+  const totalWords = fullBodyRawText ? fullBodyRawText.split(/\s+/).filter(Boolean).length : 0;
+  const minutes = Math.max(1, Math.ceil(totalWords / 180));
   const estimatedReadTime = `${minutes} min read`;
 
   return {
-    title: title || "New Article Title",
-    slug: slug || "new-article-slug",
-    focusKeyword: focusKeyword || (parsedKeywords[0] || ""),
-    metaDescription: metaDescription || summary || "",
-    category: detectedCategoryName,
-    summary: summary || metaDescription || "",
+    title: finalTitle,
+    slug: finalSlug,
+    focusKeyword: extractedFocusKeyword || parsedKeywords[0] || "",
+    metaDescription: finalMetaDescription || derivedSummary,
+    category: detectedCategory,
+    summary: derivedSummary,
     keywords: parsedKeywords,
     estimatedReadTime,
-    paragraphs: structuredParagraphs.length > 0 ? structuredParagraphs : [fullBodyRaw || "Start writing your content here..."],
-    rawBodyText: fullBodyRaw,
+    paragraphs: structuredParagraphs.length > 0 ? structuredParagraphs : ["ابدأ بكتابة محتوى المقال هنا..."],
+    rawBodyText: fullBodyRawText,
     detectedStats: {
       headingsCount,
       tablesCount,

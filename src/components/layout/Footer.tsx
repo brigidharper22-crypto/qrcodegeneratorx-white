@@ -194,6 +194,16 @@ export default function Footer({ onNavigate }: FooterProps) {
                   </a>
                 </li>
               ))}
+              <li>
+                <a
+                  href={`/${locale}/admin-portal-x891`}
+                  onClick={(e) => handleLinkClick(e, "admin-portal-x891")}
+                  className="text-slate-500 hover:text-blue-400 transition-colors cursor-pointer text-xs flex items-center gap-1 pt-1"
+                  title="Article Studio & Auto-Parser Portal"
+                >
+                  <span>⚙️ {locale === "ar" ? "استوديو ومحرر المقالات (Admin Studio)" : "Article Studio & Admin"}</span>
+                </a>
+              </li>
             </ul>
 
             <div className="mt-6 flex items-center gap-2 text-xs font-mono text-blue-400 bg-slate-850 px-4 py-2.5 rounded-xl border border-slate-800">

@@ -2390,10 +2390,10 @@ Modern cafes thrive on speed...
                         </strong>
                       </span>
                       <span className="bg-white px-3 py-1.5 rounded-lg border border-slate-200">
-                        📝 الكلمات: <strong>{parsedDraftPreview.wordCount}</strong>
+                        📝 الكلمات: <strong>{parsedDraftPreview.detectedStats.wordsCount}</strong>
                       </span>
                       <span className="bg-white px-3 py-1.5 rounded-lg border border-slate-200">
-                        ⏱️ وقت القراءة: <strong>{parsedDraftPreview.readTime}</strong>
+                        ⏱️ وقت القراءة: <strong>{parsedDraftPreview.estimatedReadTime}</strong>
                       </span>
                     </div>
                   </div>
