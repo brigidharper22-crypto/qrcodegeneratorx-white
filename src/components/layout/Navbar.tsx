@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useI18n, SUPPORTED_LOCALES, LOCALE_INFO } from "../../hooks/useI18n";
 import { Locale } from "../../types";
-import { QrCode, Menu, X, Globe, Check } from "lucide-react";
+import { QrCode, Menu, X, Globe, Check, Sparkles } from "lucide-react";
 
 interface NavbarProps {
   currentPage: string;

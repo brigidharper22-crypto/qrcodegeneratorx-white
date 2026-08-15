@@ -18,6 +18,7 @@ const HowItWorksView = lazy(() => import("./components/views/StaticPages").then(
 const FeaturesView = lazy(() => import("./components/views/StaticPages").then(m => ({ default: m.FeaturesView })));
 const PrivacyPolicyView = lazy(() => import("./components/views/StaticPages").then(m => ({ default: m.PrivacyPolicyView })));
 const TermsView = lazy(() => import("./components/views/StaticPages").then(m => ({ default: m.TermsView })));
+const ArticleEditorView = lazy(() => import("./components/views/ArticleEditorView").then(m => ({ default: m.ArticleEditorView })));
 import { motion, AnimatePresence } from "motion/react";
 import {
   QrCode,
@@ -506,6 +507,18 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [parseCurrentPath]);
 
+  // Global Secret Shortcut: Ctrl + Shift + A (or Cmd + Shift + A) to open secret admin portal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "A" || e.key === "a")) {
+        e.preventDefault();
+        handleNav("admin-portal-x891");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   // Navigate utility making path routers instant
   const handleNav = (pageId: string) => {
     setCurrentPage(pageId);
@@ -517,6 +530,14 @@ export default function App() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+
+  // Check if current route is the secret admin portal
+  const isAdminPortal =
+    currentPage === "admin-portal-x891" ||
+    currentPage === "admin-studio-secure" ||
+    currentPage === "secret-admin" ||
+    currentPage === "editor" ||
+    currentPage === "admin";
 
   // Extract variables for specific blog post route
   const getBlogPost = () => {
@@ -557,6 +578,9 @@ export default function App() {
     } else if (currentPage === "terms") {
       title = locale === "ar" ? "شروط الخدمة والاستخدام التجاري الحر مدى الحياة" : "Terms of Service | Public Commercial Use Rights";
       desc = locale === "ar" ? "اقرأ شروط استخدام الرموز المصممة والتي تمنحك حقوقاً تجارية كاملة مدى الحياة مجاناً." : "Review our standard use agreements granting 100% permanent commercial rights to all generated graphics with no fees.";
+    } else if (isAdminPortal) {
+      title = "Administration Gate | Secure Portal";
+      desc = "Secure system management";
     }
 
     // Set Document title
@@ -572,6 +596,13 @@ export default function App() {
       }
       el.setAttribute("content", contentVal);
     };
+
+    // Secret Admin Protection: ensure search engines NEVER index or crawl the admin studio!
+    if (isAdminPortal) {
+      setMetaTag('meta[name="robots"]', 'name', 'robots', 'noindex, nofollow, noarchive');
+    } else {
+      setMetaTag('meta[name="robots"]', 'name', 'robots', 'index, follow');
+    }
 
     // Set canonical link tag dynamically in head
     let canonicalEl = document.querySelector('link[rel="canonical"]');
@@ -946,10 +977,15 @@ export default function App() {
               <BlogPostDetail post={activeBlogPost} onBack={() => handleNav("blog")} onNavigate={handleNav} />
             )}
 
-            {/* VIEW 7: PRIVACY POLICY PAGE */}
+            {/* VIEW 7: SECRET ADMIN ARTICLE EDITOR & PUBLISHER STUDIO */}
+            {isAdminPortal && (
+              <ArticleEditorView onNavigate={handleNav} />
+            )}
+
+            {/* VIEW 8: PRIVACY POLICY PAGE */}
             {currentPage === "privacy-policy" && <PrivacyPolicyView />}
 
-            {/* VIEW 8: TERMS OF SERVICE PAGE */}
+            {/* VIEW 9: TERMS OF SERVICE PAGE */}
             {currentPage === "terms" && <TermsView />}
           </motion.div>
         </AnimatePresence>

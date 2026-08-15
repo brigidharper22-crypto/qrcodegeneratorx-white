@@ -1,5 +1,6 @@
 import { Locale } from "../types";
-import { BLOG_POSTS } from "./blogData";
+import { BlogPost, BLOG_POSTS } from "./blogData";
+import { getCustomArticles } from "../utils/customArticlesStorage";
 
 import { arTranslations } from "./translations/ar";
 import { frTranslations } from "./translations/fr";
@@ -28,9 +29,11 @@ export const BLOG_TRANSLATIONS: Record<Exclude<Locale, "en">, Record<string, Par
   ja: jaTranslations,
 };
 
-// Returns localized version of the blog posts by merging base English posts with translations
+// Returns localized version of the blog posts by merging base English posts with translations and user custom posts
 export function getBlogPostsForLocale(locale: Locale): typeof BLOG_POSTS {
-  return getBlogPostsForLocalePure(BLOG_POSTS, locale);
+  const customPosts = getCustomArticles();
+  const basePostsMerged = [...customPosts, ...BLOG_POSTS];
+  return getBlogPostsForLocalePure(basePostsMerged, locale);
 }
 
 export function getBlogPostsForLocalePure(basePosts: any[], locale: Locale): any[] {
@@ -43,7 +46,7 @@ export function getBlogPostsForLocalePure(basePosts: any[], locale: Locale): any
   return basePosts.map((post) => {
     const postTranslation = translations[post.id];
     if (!postTranslation) {
-      return post; // Fallback to English
+      return post; // Fallback to current post data
     }
 
     return {
@@ -57,3 +60,4 @@ export function getBlogPostsForLocalePure(basePosts: any[], locale: Locale): any
     };
   });
 }
+
