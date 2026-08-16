@@ -13,7 +13,11 @@ export interface ParsedArticleDraft {
   rawBodyText: string;
   detectedStats: {
     headingsCount: number;
+    h2Count: number;
+    h3Count: number;
+    listsCount: number;
     tablesCount: number;
+    calloutsCount: number;
     paragraphsCount: number;
     wordsCount: number;
     keywordsCount: number;
@@ -46,6 +50,9 @@ export function detectCategory(text: string, currentCategory?: string): string {
   }
   const lower = text.toLowerCase();
 
+  if (/real estate|property|realtor|house|listing|عقار|عقارات|شقق|منازل/i.test(lower)) {
+    return "Marketing";
+  }
   if (/cafe|coffee|restaurant|food|menu|dining|hotel|hospitality|bar|مقهى|كافيه|مطعم|منيو|ضيافة/i.test(lower)) {
     return "Tutorials";
   }
@@ -64,22 +71,133 @@ export function detectCategory(text: string, currentCategory?: string): string {
   if (/event|wedding|invitation|conference|ticket|مناسبات|مؤتمرات|دعوات/i.test(lower)) {
     return "Events";
   }
-  return "Tutorials";
+  return "Marketing";
+}
+
+/**
+ * Helper to check if a line is a bullet item or numbered item
+ */
+export function isListItemLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  // All standard and unicode bullet symbols: *, -, +, •, ●, ○, ■, □, ▪, ▫, ◆, ◇, ◈, ✓, ✔, ✕, ✖, ★, ☆, ➢, ➤, ➔, ➜, –, —
+  if (/^[\*\-\+•●○■□▪▫◆◇◈✓✔✕✖★☆➢➤➔➜–—]\s*/.test(trimmed)) return true;
+  // Numbered list in English or Arabic-Indic digits: 1. 2. 1) 2) (1) [1] 1- ١. ٢.
+  if (/^(?:\d+|[\u0660-\u0669]+)[\.\)\-]\s*/.test(trimmed) || /^(?:\(\d+\)|\[\d+\])\s*/.test(trimmed)) return true;
+  return false;
+}
+
+/**
+ * Helper to clean a list item prefix for unified formatting
+ */
+export function cleanListItemLine(line: string): string {
+  const trimmed = line.trim();
+  if (/^[\*\-\+•●○■□▪▫◆◇◈✓✔✕✖★☆➢➤➔➜–—]\s*/.test(trimmed)) {
+    return `* ${trimmed.replace(/^[\*\-\+•●○■□▪▫◆◇◈✓✔✕✖★☆➢➤➔➜–—]\s*/, "")}`;
+  }
+  const numMatch = trimmed.match(/^((?:\d+|[\u0660-\u0669]+)[\.\)\-]|\(\d+\)|\[\d+\])\s*(.+)$/);
+  if (numMatch) {
+    const rawNum = numMatch[1].replace(/[\(\)\[\]]/g, "");
+    return `${rawNum} ${numMatch[2]}`;
+  }
+  return `* ${trimmed}`;
+}
+
+/**
+ * Helper to check if a standalone line is likely a main section Heading (H2)
+ */
+export function isLikelyH2Heading(trimmedLine: string, nextLineIsBlankOrText: boolean = true): boolean {
+  if (!trimmedLine) return false;
+  if (trimmedLine.length > 120) return false;
+
+  // Explicit H2 marks
+  if (/^(?:##\s+|h2\s*[:：\-–]\s*|\[h2\]\s*)/i.test(trimmedLine)) return true;
+
+  // Markdown bold wrapping the entire heading: **Title**
+  const boldMatch = trimmedLine.match(/^\*\*([^*]+)\*\*$/);
+  if (boldMatch) {
+    const inner = boldMatch[1].trim();
+    if (inner.length > 2 && inner.length < 90 && !/[.،;؛]$/.test(inner)) {
+      return true;
+    }
+  }
+
+  // Section numbering e.g. "1. Why QR Codes Matter", "Step 1: Create Account", "Part 2: Design"
+  if (/^(?:step\s+\d+|part\s+\d+|phase\s+\d+|section\s+\d+|الخطوة\s+\d+|الجزء\s+\d+|المرحلة\s+\d+|الفصل\s+\d+)\s*[:：\-–]\s*.+/i.test(trimmedLine)) {
+    return true;
+  }
+
+  // Common heading words (Arabic & English)
+  if (/^(?:don't|start with|why\b|how to\b|frequently asked|faq\b|best practices|when to|tips for|advantages of|summary|conclusion|final thoughts|key takeaways|الأسئلة الشائعة|أسئلة شائعة|خاتمة|الخاتمة|خلاصة|الخلاصة|نصائح|مميزات|فوائد|كيفية|خطوات|أفضل الممارسات|دليل)/i.test(trimmedLine)) {
+    if (!/[.،;؛]$/.test(trimmedLine)) {
+      return true;
+    }
+  }
+
+  // Standalone Title-Cased Line without terminal period/comma (e.g. "Start With the Property Listing", "Why Dynamic QR Codes Win")
+  const words = trimmedLine.split(/\s+/);
+  if (words.length >= 2 && words.length <= 12 && !/[.,;،؛!؟?]$/.test(trimmedLine)) {
+    // English title case check (most words capitalized)
+    const capitalizedWords = words.filter((w) => /^[A-Z]/.test(w));
+    if (capitalizedWords.length >= Math.ceil(words.length * 0.55)) {
+      return true;
+    }
+    // Arabic standalone short phrase without terminal punctuation
+    if (/^[\u0621-\u064A\s0-9]+$/.test(trimmedLine) && words.length <= 8) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Helper to check if a standalone line is likely a Subheading / Question (H3)
+ */
+export function isLikelyH3Heading(trimmedLine: string): boolean {
+  if (!trimmedLine) return false;
+  if (trimmedLine.length > 130) return false;
+
+  // Explicit H3 marks
+  if (/^(?:###\s+|h3\s*[:：\-–]\s*|\[h3\]\s*)/i.test(trimmedLine)) return true;
+
+  // Q&A / FAQ patterns
+  if (/^(?:q\s*[:：\-–]|question\s*[:：\-–]|سؤال\s*[:：\-–]|س\s*[:：\-–]|faq\s*[:：\-–])/i.test(trimmedLine)) {
+    return true;
+  }
+
+  // Questions ending in ? or ؟
+  if (/[?؟]$/.test(trimmedLine)) {
+    // Check if it's a question heading
+    if (/^(?:what|how|why|when|where|who|can|is|are|do|does|will|should|هل|كيف|ما|ماذا|لماذا|أين|متى|من|كم)\b/i.test(trimmedLine)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
  * Intelligent Smart Parser for raw article text
  * Handles Title, SEO Title, Meta Description, Primary Keyword, URL Slug, Category, Secondary Keywords,
- * and parses body content distinguishing Headings (H2/H3), Tables, Lists, Callouts, and Paragraphs.
+ * and automatically recognizes text formatting and structures (H2, H3, Lists, Tables, Callouts, Bold, etc.)
  */
-export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
+export function parseRawArticleContent(
+  rawInput: string,
+  options?: {
+    currentTitle?: string;
+    currentSlug?: string;
+    currentCategory?: string;
+    preserveFirstLineInBody?: boolean;
+  }
+): ParsedArticleDraft {
   if (!rawInput || !rawInput.trim()) {
     return {
-      title: "",
-      slug: "",
+      title: options?.currentTitle || "",
+      slug: options?.currentSlug || "",
       focusKeyword: "",
       metaDescription: "",
-      category: "Guides",
+      category: options?.currentCategory || "Marketing",
       summary: "",
       keywords: [],
       estimatedReadTime: "1 min read",
@@ -87,7 +205,11 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
       rawBodyText: "",
       detectedStats: {
         headingsCount: 0,
+        h2Count: 0,
+        h3Count: 0,
+        listsCount: 0,
         tablesCount: 0,
+        calloutsCount: 0,
         paragraphsCount: 0,
         wordsCount: 0,
         keywordsCount: 0,
@@ -109,7 +231,6 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
 
   const bodyLineCandidates: { lineIndex: number; text: string }[] = [];
   let foundFirstNonMetadataLine = false;
-  let firstLineAsTitleIndex = -1;
 
   // Pass 1: Parse and classify lines into Metadata or Body
   for (let i = 0; i < allLines.length; i++) {
@@ -124,67 +245,64 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
     }
 
     // Check metadata patterns
-    const seoTitleMatch = trimmed.match(/^(?:seo\s+title|عنوان\s+سيو)\s*[:：\-–]\s*(.+)$/i);
+    const seoTitleMatch = trimmed.match(/^(?:seo\s+title|عنوان\s+سيو|seo\s+عنوان)\s*[:：\-–]\s*(.+)$/i);
     const articleTitleMatch = trimmed.match(/^(?:article\s+title|title|h1|عنوان\s+المقال|العنوان)\s*[:：\-–]\s*(.+)$/i);
     const h1MarkdownMatch = trimmed.match(/^#\s+(.+)$/);
-    const descMatch = trimmed.match(/^(?:meta\s+description|description|seo\s+description|الوصف\s+المختصر|الوصف|وصف\s+سيو)\s*[:：\-–]\s*(.+)$/i);
-    const focusKwMatch = trimmed.match(/^(?:primary\s+keyword|focus\s+keyword|main\s+keyword|target\s+keyword|الكلمة\s+المفتاحية\s+الرئيسية|الكلمة\s+الدلالية\s+الرئيسية|الكلمة\s+الرئيسية|الكلمة\s+المفتاحية)\s*[:：\-–]\s*(.+)$/i);
+    const descMatch = trimmed.match(/^(?:meta\s+description|description|seo\s+description|meta\s+field|الوصف\s+المختصر|الوصف|وصف\s+سيو|ميتا\s+دسكربشن)\s*[:：\-–]\s*(.+)$/i);
+    const focusKwMatch = trimmed.match(/^(?:primary\s+keywords?|primary\s+keyword|focus\s+keywords?|focus\s+keyword|main\s+keywords?|target\s+keywords?|الكلمة\s+المفتاحية\s+الرئيسية|الكلمة\s+الدلالية\s+الرئيسية|الكلمات\s+الرئيسية|الكلمة\s+الرئيسية|الكلمة\s+المفتاحية)\s*[:：\-–]\s*(.+)$/i);
     const slugMatch = trimmed.match(/^(?:url\s+slug|slug|permalink|url|رابط\s+المقال|الرابط|الاسم\s+اللطيف)\s*[:：\-–]\s*(.+)$/i);
-    const kwMatch = trimmed.match(/^(?:secondary\s+keywords|keywords\s+tags|keywords|tags|الكلمات\s+الدلالية|الكلمات\s+المفتاحية|الوسوم)\s*[:：\-–]\s*(.+)$/i);
+    const kwMatch = trimmed.match(/^(?:secondary\s+keywords?|secondary\s+keyword|keywords\s+tags|keywords|seo\s+keywords?|tags|الكلمات\s+الدلالية|الكلمات\s+المفتاحية|الكلمات\s+الفرعية|الوسوم)\s*[:：\-–]\s*(.+)$/i);
     const catMatch = trimmed.match(/^(?:category|classification|التصنيف|القسم)\s*[:：\-–]\s*(.+)$/i);
     const sumMatch = trimmed.match(/^(?:summary|quick\s+summary|الملخص|ملخص\s+المقال)\s*[:：\-–]\s*(.+)$/i);
 
     if (seoTitleMatch) {
-      extractedSeoTitle = seoTitleMatch[1].trim();
+      extractedSeoTitle = seoTitleMatch[1].trim().replace(/^\*\*|\*\*$/g, "");
       continue;
     }
     if (articleTitleMatch) {
-      extractedTitle = articleTitleMatch[1].trim();
+      extractedTitle = articleTitleMatch[1].trim().replace(/^\*\*|\*\*$/g, "");
       continue;
     }
     if (h1MarkdownMatch) {
-      extractedTitle = h1MarkdownMatch[1].trim();
+      extractedTitle = h1MarkdownMatch[1].trim().replace(/^\*\*|\*\*$/g, "");
       continue;
     }
     if (descMatch) {
-      extractedMetaDescription = descMatch[1].trim();
+      extractedMetaDescription = descMatch[1].trim().replace(/^\*\*|\*\*$/g, "");
       continue;
     }
     if (focusKwMatch) {
-      extractedFocusKeyword = focusKwMatch[1].trim();
+      extractedFocusKeyword = focusKwMatch[1].trim().replace(/^\*\*|\*\*$/g, "");
       continue;
     }
     if (slugMatch) {
-      extractedSlug = sanitizeSlug(slugMatch[1].trim());
+      extractedSlug = sanitizeSlug(slugMatch[1].trim().replace(/^\*\*|\*\*$/g, ""));
       continue;
     }
     if (kwMatch) {
-      rawKeywordsList.push(kwMatch[1].trim());
+      rawKeywordsList.push(kwMatch[1].trim().replace(/^\*\*|\*\*$/g, ""));
       continue;
     }
     if (catMatch) {
-      extractedCategory = catMatch[1].trim();
+      extractedCategory = catMatch[1].trim().replace(/^\*\*|\*\*$/g, "");
       continue;
     }
     if (sumMatch) {
-      extractedSummary = sumMatch[1].trim();
+      extractedSummary = sumMatch[1].trim().replace(/^\*\*|\*\*$/g, "");
       continue;
     }
 
-    // If no title yet, check if this first non-empty line looks like an H1 / Article Title
-    if (!extractedTitle && firstLineAsTitleIndex === -1 && !trimmed.startsWith("##") && !trimmed.startsWith("###") && !trimmed.startsWith("|") && !trimmed.startsWith(">") && trimmed.length < 160) {
-      extractedTitle = trimmed;
-      firstLineAsTitleIndex = i;
-      foundFirstNonMetadataLine = true;
-      continue;
-    }
-
+    // Always preserve all remaining lines in the body
     foundFirstNonMetadataLine = true;
     bodyLineCandidates.push({ lineIndex: i, text: rawLine });
   }
 
-  // Finalize Title (prefer SEO title or extracted title)
-  const finalTitle = extractedTitle || extractedSeoTitle || "New Article Title";
+  // Finalize Title (prefer explicit extracted title or provided current title)
+  const finalTitle =
+    extractedTitle ||
+    extractedSeoTitle ||
+    (options?.currentTitle && options.currentTitle !== "عنوان المقال الجديد" ? options.currentTitle : "") ||
+    "New Article Title";
 
   // Parse keywords from rawKeywordsList
   const parsedKeywords: string[] = [];
@@ -198,7 +316,7 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
   rawKeywordsList.forEach((kwChunk) => {
     kwChunk
       .split(/[,،;؛|\n]+/)
-      .map((k) => k.trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g, ""))
+      .map((k) => k.trim().replace(/^["'“”‘’*]+|["'“”‘’*]+$/g, ""))
       .filter(Boolean)
       .forEach((k) => {
         if (!seenKw.has(k.toLowerCase())) {
@@ -215,13 +333,17 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
   const finalMetaDescription = extractedMetaDescription || extractedSummary || "";
   const finalSummary = extractedSummary || extractedMetaDescription || "";
 
-  // Pass 2: Parse Body lines into structured blocks (Headings, Tables, Callouts, Paragraphs)
+  // Pass 2: Parse Body lines into structured blocks (Headings, Tables, Lists, Callouts, Paragraphs)
   const rawBodyLines = bodyLineCandidates.map((c) => c.text);
   const structuredParagraphs: string[] = [];
-  let headingsCount = 0;
+  let h2Count = 0;
+  let h3Count = 0;
+  let listsCount = 0;
   let tablesCount = 0;
+  let calloutsCount = 0;
 
   let currentTableLines: string[] = [];
+  let currentListLines: string[] = [];
   let currentNormalLines: string[] = [];
 
   const flushNormalLines = () => {
@@ -245,19 +367,41 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
     }
   };
 
+  const flushList = () => {
+    if (currentListLines.length > 0) {
+      const listText = currentListLines.join("\n").trim();
+      if (listText) {
+        listsCount++;
+        structuredParagraphs.push(listText);
+      }
+      currentListLines = [];
+    }
+  };
+
   for (let i = 0; i < rawBodyLines.length; i++) {
     const rawLine = rawBodyLines[i];
     const trimmed = rawLine.trim();
 
-    // Check if line is part of a markdown table (starts or contains pipe |)
+    // 1. Table Detection
     const isTableLine = trimmed.startsWith("|") || (trimmed.includes("|") && trimmed.split("|").length >= 3);
-
     if (isTableLine) {
       flushNormalLines();
+      flushList();
       currentTableLines.push(trimmed);
       continue;
     } else if (currentTableLines.length > 0) {
       flushTable();
+    }
+
+    // 2. List Item Detection (Bullet or Numbered)
+    const isListLine = isListItemLine(trimmed);
+    if (isListLine) {
+      flushNormalLines();
+      flushTable();
+      currentListLines.push(cleanListItemLine(trimmed));
+      continue;
+    } else if (currentListLines.length > 0) {
+      flushList();
     }
 
     if (!trimmed) {
@@ -265,45 +409,83 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
       continue;
     }
 
-    // Check for H2 heading
-    const isH2 = trimmed.startsWith("## ") || /^h2\s*[:：\-–]\s*/i.test(trimmed);
-    if (isH2) {
+    // 3. Callout Detection (> or 💡 or 📌 or ⚠️ or ملاحظة:)
+    const isCallout =
+      trimmed.startsWith("> ") ||
+      trimmed.startsWith("💡") ||
+      trimmed.startsWith("📌") ||
+      trimmed.startsWith("⚠️") ||
+      trimmed.startsWith("ℹ️") ||
+      /^(?:note|tip|warning|important|ملاحظة|تنبيه|نصيحة|هام)\s*[:：\-–]/i.test(trimmed);
+
+    if (isCallout) {
       flushNormalLines();
-      headingsCount++;
-      const cleanH2 = trimmed.replace(/^##\s*/, "").replace(/^h2\s*[:：\-–]\s*/i, "").trim();
-      structuredParagraphs.push(`H2: ${cleanH2}`);
+      calloutsCount++;
+      const cleanCallout = trimmed.startsWith(">") ? trimmed : `> ${trimmed}`;
+      structuredParagraphs.push(cleanCallout);
       continue;
     }
 
-    // Check for H3 heading
-    const isH3 = trimmed.startsWith("### ") || /^h3\s*[:：\-–]\s*/i.test(trimmed);
-    if (isH3) {
+    // 4. Code Block Detection (```)
+    if (trimmed.startsWith("```")) {
       flushNormalLines();
-      headingsCount++;
-      const cleanH3 = trimmed.replace(/^###\s*/, "").replace(/^h3\s*[:：\-–]\s*/i, "").trim();
+      let codeLines = [trimmed];
+      let j = i + 1;
+      while (j < rawBodyLines.length) {
+        codeLines.push(rawBodyLines[j]);
+        if (rawBodyLines[j].trim().endsWith("```")) {
+          i = j;
+          break;
+        }
+        j++;
+      }
+      structuredParagraphs.push(codeLines.join("\n"));
+      continue;
+    }
+
+    // 5. Explicit or Smart H3 Heading Detection
+    if (isLikelyH3Heading(trimmed)) {
+      flushNormalLines();
+      h3Count++;
+      const cleanH3 = trimmed
+        .replace(/^###\s*/, "")
+        .replace(/^h3\s*[:：\-–]\s*/i, "")
+        .replace(/^\[h3\]\s*/i, "")
+        .replace(/^\*\*|\*\*$/g, "")
+        .trim();
       structuredParagraphs.push(`H3: ${cleanH3}`);
       continue;
     }
 
-    // Check for standalone callout (> or 💡)
-    const isCallout = trimmed.startsWith("> ") || trimmed.startsWith("💡") || trimmed.startsWith("📌");
-    if (isCallout) {
+    // 6. Explicit or Smart H2 Heading Detection
+    const nextLine = i + 1 < rawBodyLines.length ? rawBodyLines[i + 1].trim() : "";
+    if (isLikelyH2Heading(trimmed, !nextLine || nextLine.length > 0)) {
       flushNormalLines();
-      structuredParagraphs.push(trimmed);
+      h2Count++;
+      const cleanH2 = trimmed
+        .replace(/^##\s*/, "")
+        .replace(/^h2\s*[:：\-–]\s*/i, "")
+        .replace(/^\[h2\]\s*/i, "")
+        .replace(/^\*\*|\*\*$/g, "")
+        .trim();
+      structuredParagraphs.push(`H2: ${cleanH2}`);
       continue;
     }
 
-    // Normal paragraph text line
+    // 7. Normal paragraph line
     currentNormalLines.push(rawLine);
   }
 
   flushNormalLines();
   flushTable();
+  flushList();
 
   // If no summary was specified, extract from the first paragraph
   const derivedSummary =
     finalSummary ||
-    structuredParagraphs.find((p) => !p.startsWith("H2: ") && !p.startsWith("H3: ") && !p.includes("|") && p.length > 20)?.slice(0, 220) ||
+    structuredParagraphs
+      .find((p) => !p.startsWith("H2: ") && !p.startsWith("H3: ") && !p.startsWith(">") && !p.includes("|") && !p.startsWith("*") && p.length > 20)
+      ?.slice(0, 240) ||
     "";
 
   // If no keywords were explicitly detected, extract natural smart keywords from title and headings
@@ -313,11 +495,11 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
       .split(/\s+/)
       .filter((w) => w.length > 2);
     const stopWords = new Set([
-      "the", "and", "for", "with", "how", "what", "why", "this", "that", "from",
+      "the", "and", "for", "with", "how", "what", "why", "this", "that", "from", "your",
       "في", "من", "إلى", "على", "عن", "مع", "هذا", "هذه", "التي", "الذي", "كيف", "ماذا", "لماذا", "شرح", "دليل"
     ]);
     const cleanWords = words.filter((w) => !stopWords.has(w.toLowerCase()));
-    cleanWords.slice(0, 5).forEach((w) => {
+    cleanWords.slice(0, 6).forEach((w) => {
       if (!parsedKeywords.includes(w)) {
         parsedKeywords.push(w);
       }
@@ -326,7 +508,7 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
 
   // Auto detect category
   const detectedCategory = detectCategory(
-    `${finalTitle} ${extractedFocusKeyword} ${parsedKeywords.join(" ")} ${structuredParagraphs.slice(0, 3).join(" ")}`,
+    `${finalTitle} ${extractedFocusKeyword} ${parsedKeywords.join(" ")} ${structuredParagraphs.slice(0, 4).join(" ")}`,
     extractedCategory
   );
 
@@ -348,8 +530,12 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
     paragraphs: structuredParagraphs.length > 0 ? structuredParagraphs : ["ابدأ بكتابة محتوى المقال هنا..."],
     rawBodyText: fullBodyRawText,
     detectedStats: {
-      headingsCount,
+      headingsCount: h2Count + h3Count,
+      h2Count,
+      h3Count,
+      listsCount,
       tablesCount,
+      calloutsCount,
       paragraphsCount: structuredParagraphs.length,
       wordsCount: totalWords,
       keywordsCount: parsedKeywords.length,
@@ -367,9 +553,10 @@ export function readFileAsText(file: File): Promise<string> {
       const content = e.target?.result as string;
       resolve(content || "");
     };
-    reader.onerror = (e) => {
+    reader.onerror = () => {
       reject(new Error("فشل قراءة الملف النصي"));
     };
     reader.readAsText(file, "UTF-8");
   });
 }
+

@@ -290,6 +290,91 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
     })
     .filter(Boolean) as Array<{ title: string; id: string }>;
 
+  // Helper to render markdown inline elements (links, bold, italic, code)
+  const renderRichTextContent = (text: string, onLinkClick: (pageId: string) => void) => {
+    if (!text) return null;
+
+    // Pattern to match links [text](url), bold **text** or __text__, italic *text*, inline code `code`
+    const tokenRegex = /(\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*|__([^_]+)__|`([^`]+)`|\*([^*]+)\*)/g;
+    const elements: React.ReactNode[] = [];
+    let lastIdx = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = tokenRegex.exec(text)) !== null) {
+      const [fullToken, , linkText, linkTarget, boldText1, boldText2, codeText, italicText] = match;
+      const startPos = match.index;
+
+      if (startPos > lastIdx) {
+        elements.push(text.substring(lastIdx, startPos));
+      }
+
+      const keyId = `inline-${startPos}-${elements.length}`;
+
+      if (linkText !== undefined && linkTarget !== undefined) {
+        // Render Link
+        if (linkTarget === "home" || linkTarget === "") {
+          elements.push(
+            <button
+              key={keyId}
+              onClick={() => {
+                onLinkClick("home");
+                const targetEl = document.getElementById("qr-tool-section");
+                if (targetEl) {
+                  targetEl.scrollIntoView({ behavior: "smooth" });
+                } else {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}
+              className="text-blue-600 hover:text-blue-800 underline decoration-blue-300 hover:decoration-blue-600 underline-offset-2 font-bold inline cursor-pointer focus:outline-none transition-colors"
+            >
+              {linkText}
+            </button>
+          );
+        } else {
+          elements.push(
+            <button
+              key={keyId}
+              onClick={() => {
+                onLinkClick(`blog/${linkTarget}`);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="text-blue-600 hover:text-blue-800 underline decoration-blue-300 hover:decoration-blue-600 underline-offset-2 font-bold inline cursor-pointer focus:outline-none transition-colors"
+            >
+              {linkText}
+            </button>
+          );
+        }
+      } else if (boldText1 !== undefined || boldText2 !== undefined) {
+        const bText = boldText1 || boldText2;
+        elements.push(
+          <strong key={keyId} className="font-extrabold text-slate-900">
+            {bText}
+          </strong>
+        );
+      } else if (codeText !== undefined) {
+        elements.push(
+          <code key={keyId} className="px-1.5 py-0.5 mx-0.5 rounded-md bg-slate-100 border border-slate-200 font-mono text-xs text-blue-700 font-semibold">
+            {codeText}
+          </code>
+        );
+      } else if (italicText !== undefined) {
+        elements.push(
+          <em key={keyId} className="italic text-slate-800 font-medium">
+            {italicText}
+          </em>
+        );
+      }
+
+      lastIdx = startPos + fullToken.length;
+    }
+
+    if (lastIdx < text.length) {
+      elements.push(text.substring(lastIdx));
+    }
+
+    return elements.length > 0 ? elements : text;
+  };
+
   // Helper to render Markdown tables cleanly
   const renderMarkdownTable = (tableText: string) => {
     const rawLines = tableText.trim().split("\n").map((l) => l.trim()).filter(Boolean);
@@ -318,7 +403,7 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
                     key={idx}
                     className="px-4 py-3.5 text-left font-black text-slate-900 text-xs md:text-sm uppercase tracking-wider border-b border-slate-200"
                   >
-                    {cell}
+                    {renderRichTextContent(cell, onNavigate)}
                   </th>
                 ))}
               </tr>
@@ -329,7 +414,7 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
               <tr key={rIdx} className={rIdx % 2 === 0 ? "bg-white" : "bg-slate-50/60 hover:bg-blue-50/40"}>
                 {row.map((cell, cIdx) => (
                   <td key={cIdx} className="px-4 py-3 text-xs md:text-sm font-medium text-slate-700">
-                    {renderParagraphWithLinks(cell, onNavigate)}
+                    {renderRichTextContent(cell, onNavigate)}
                   </td>
                 ))}
               </tr>
@@ -344,69 +429,44 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
   const renderCallout = (text: string) => {
     const cleanText = text.replace(/^>\s*/, "");
     return (
-      <div className="my-5 p-4 md:p-5 rounded-2xl bg-blue-50/70 border border-blue-200/80 text-slate-800 text-sm md:text-base leading-relaxed flex items-start gap-3 shadow-xs">
+      <div className="my-5 p-4 md:p-5 rounded-2xl bg-blue-50/80 border border-blue-200 text-slate-800 text-sm md:text-base leading-relaxed flex items-start gap-3 shadow-xs">
         <span className="text-xl shrink-0 mt-0.5">💡</span>
-        <div className="flex-1 font-medium">{renderParagraphWithLinks(cleanText, onNavigate)}</div>
+        <div className="flex-1 font-medium">{renderRichTextContent(cleanText, onNavigate)}</div>
       </div>
     );
   };
 
-  // Render paragraphs supporting inline rich link conversions
-  const renderParagraphWithLinks = (text: string, onLinkClick: (pageId: string) => void) => {
-    const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let match;
+  // Helper to render List Blocks (Bullet or Numbered)
+  const renderListBlock = (paragraph: string) => {
+    const rawItems = paragraph.split("\n").filter((l) => l.trim());
+    const isNumbered = rawItems.some((l) => /^\s*\d+[\.\)]\s+/.test(l));
 
-    while ((match = regex.exec(text)) !== null) {
-      const [fullMatch, linkText, target] = match;
-      const index = match.index;
+    return (
+      <div className="my-5 p-5 md:p-6 bg-slate-50/90 border border-slate-200/80 rounded-2xl shadow-xs">
+        <ul className="space-y-3">
+          {rawItems.map((li, lIdx) => {
+            const isItemNumbered = /^\s*(\d+)[\.\)]\s+/.test(li);
+            const numMatch = li.match(/^\s*(\d+)[\.\)]\s+(.+)$/);
+            const cleanText = isItemNumbered && numMatch ? numMatch[2] : li.replace(/^\s*[\*\-\+•◦▪▫✓✔–—]\s+/, "");
 
-      if (index > lastIndex) {
-        parts.push(text.substring(lastIndex, index));
-      }
-
-      if (target === "home" || target === "") {
-        parts.push(
-          <button
-            key={index}
-            onClick={() => {
-              onLinkClick("home");
-              const targetEl = document.getElementById("qr-tool-section");
-              if (targetEl) {
-                targetEl.scrollIntoView({ behavior: "smooth" });
-              } else {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }
-            }}
-            className="text-blue-650 hover:text-blue-800 hover:underline font-bold inline-block focus:outline-none cursor-pointer"
-          >
-            {linkText}
-          </button>
-        );
-      } else {
-        parts.push(
-          <button
-            key={index}
-            onClick={() => {
-              onLinkClick(`blog/${target}`);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            className="text-blue-650 hover:text-blue-800 hover:underline font-bold inline-block focus:outline-none cursor-pointer"
-          >
-            {linkText}
-          </button>
-        );
-      }
-
-      lastIndex = index + fullMatch.length;
-    }
-
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
-    }
-
-    return parts.length > 0 ? parts : text;
+            return (
+              <li key={lIdx} className="flex items-start gap-3 text-slate-800 text-sm md:text-base leading-relaxed">
+                {isNumbered || isItemNumbered ? (
+                  <span className="w-6 h-6 rounded-lg bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                    {numMatch ? numMatch[1] : lIdx + 1}
+                  </span>
+                ) : (
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0 mt-2"></span>
+                )}
+                <div className="flex-1 font-normal">
+                  {renderRichTextContent(cleanText, onNavigate)}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
   };
 
   return (
@@ -600,17 +660,10 @@ export function BlogPostDetail({ post, onBack, onNavigate }: BlogPostDetailProps
                       <code>{paragraph.replace(/```text\n|```/g, "")}</code>
                     </pre>
                   ) : isList ? (
-                    <ul className="space-y-2.5 my-4 bg-slate-50/70 border border-slate-200/70 p-4 md:p-5 rounded-2xl">
-                      {paragraph.split("\n").filter((l) => l.trim()).map((li, lIdx) => (
-                        <li key={lIdx} className="flex items-start gap-2.5 text-slate-700 text-sm md:text-base">
-                          <span className="text-blue-600 font-bold shrink-0 mt-0.5">•</span>
-                          <span className="flex-1">{renderParagraphWithLinks(li.replace(/^\s*[-*•\d+.]\s+/, ""), onNavigate)}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    renderListBlock(paragraph)
                   ) : (
                     <div className="space-y-4">
-                      <p>{renderParagraphWithLinks(paragraph, onNavigate)}</p>
+                      <p>{renderRichTextContent(paragraph, onNavigate)}</p>
 
                       {/* Ad Placement 1: Mediavine In-Content Mid (after the 3rd paragraph block) */}
                       {index === 2 && (

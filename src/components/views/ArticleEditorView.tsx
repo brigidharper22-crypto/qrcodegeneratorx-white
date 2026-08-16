@@ -27,6 +27,8 @@ import {
   detectCategory,
   ParsedArticleDraft,
   readFileAsText,
+  isListItemLine,
+  cleanListItemLine,
 } from "../../utils/articleAutoParser";
 import {
   CheckCircle2,
@@ -474,8 +476,29 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
   };
 
   const removeParagraph = (index: number) => {
-    if (paragraphs.length <= 1) return;
+    if (paragraphs.length <= 1) {
+      setParagraphs([""]);
+      return;
+    }
     setParagraphs(paragraphs.filter((_, i) => i !== index));
+  };
+
+  const handleClearParagraphs = () => {
+    setParagraphs([""]);
+    setRawText("");
+    showToast("تم مسح جميع الفقرات بنجاح");
+  };
+
+  const handleClearAll = () => {
+    setTitle("");
+    setSlug("");
+    setFocusKeyword("");
+    setMetaDescription("");
+    setSummary("");
+    setKeywords([]);
+    setParagraphs([""]);
+    setRawText("");
+    showToast("تم مسح كافة الحقول ومحتوى المقال بالكامل");
   };
 
   const moveParagraph = (index: number, direction: "up" | "down") => {
@@ -487,6 +510,141 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
     updated[index] = updated[targetIndex];
     updated[targetIndex] = temp;
     setParagraphs(updated);
+  };
+
+  // Helper to determine block type
+  const getBlockType = (p: string): "h2" | "h3" | "list" | "table" | "callout" | "code" | "paragraph" => {
+    const trimmed = p.trim();
+    if (trimmed.startsWith("H2: ") || trimmed.startsWith("## ")) return "h2";
+    if (trimmed.startsWith("H3: ") || trimmed.startsWith("### ")) return "h3";
+    if (trimmed.startsWith("```")) return "code";
+    if (trimmed.startsWith(">") || trimmed.startsWith("💡") || trimmed.startsWith("📌") || trimmed.startsWith("⚠️")) return "callout";
+    if (trimmed.includes("|") && trimmed.split("\n").filter((l) => l.trim().startsWith("|")).length >= 2) return "table";
+    if (trimmed.split("\n").filter((l) => l.trim()).every((l) => /^[\*\-\+•◦▪▫✓✔–—\d+.]\s+/.test(l.trim()))) return "list";
+    return "paragraph";
+  };
+
+  // Convert a block to a specific format
+  const convertBlockFormat = (index: number, targetType: "h2" | "h3" | "list" | "callout" | "table" | "paragraph") => {
+    const raw = paragraphs[index] || "";
+    let clean = raw
+      .replace(/^(?:H2:\s*|##\s*|H3:\s*|###\s*|>\s*|💡\s*)/, "")
+      .trim();
+
+    if (targetType === "h2") {
+      updateParagraph(index, `H2: ${clean}`);
+    } else if (targetType === "h3") {
+      updateParagraph(index, `H3: ${clean}`);
+    } else if (targetType === "callout") {
+      updateParagraph(index, `> 💡 ${clean}`);
+    } else if (targetType === "list") {
+      // Split lines and prefix with *
+      const lines = clean.split("\n").filter((l) => l.trim());
+      if (lines.length > 0) {
+        const formatted = lines
+          .map((l) => (isListItemLine(l) ? cleanListItemLine(l) : `* ${l.replace(/^[\*\-\+•◦▪▫✓✔–—\d+.]\s*/, "")}`))
+          .join("\n");
+        updateParagraph(index, formatted);
+      } else {
+        updateParagraph(index, `* عنصر قائمة 1\n* عنصر قائمة 2\n* عنصر قائمة 3`);
+      }
+    } else if (targetType === "table") {
+      if (!clean.includes("|")) {
+        updateParagraph(
+          index,
+          `| الميزة / العنصر | الوصف والأهمية |\n| --- | --- |\n| ${clean || "الخاصية الأولى"} | التفاصيل والميزة هنا |\n| خاصية إضافية | شرح إضافي |`
+        );
+      } else {
+        updateParagraph(index, clean);
+      }
+    } else {
+      // Normal paragraph
+      const unbulleted = clean
+        .split("\n")
+        .map((l) => l.replace(/^[\*\-\+•◦▪▫✓✔–—\d+.]\s*/, ""))
+        .join(" ");
+      updateParagraph(index, unbulleted);
+    }
+  };
+
+  // Auto-Detect Entire Article Structure & Formatting
+  const handleAutoDetectFormatting = () => {
+    const combinedText = rawMarkdownMode ? rawText : paragraphs.join("\n\n");
+    if (!combinedText.trim()) {
+      showToast("يرجى كتابة أو لصق نص المقال أولاً للتعرف على شكله.");
+      return;
+    }
+
+    const parsed = parseRawArticleContent(combinedText, {
+      currentTitle: title,
+      currentSlug: slug,
+      currentCategory: category,
+    });
+
+    // Apply structured paragraphs
+    if (parsed.paragraphs && parsed.paragraphs.length > 0) {
+      setParagraphs(parsed.paragraphs);
+      setRawText(parsed.paragraphs.join("\n\n"));
+    }
+
+    // Update metadata if missing or newly extracted
+    if (!title || title === "عنوان المقال الجديد" || title === "New Article Title") {
+      if (parsed.title && parsed.title !== "New Article Title") {
+        setTitle(parsed.title);
+      }
+    }
+    if (!slug || slug === "new-article-post" || slug === "qr-article-guide") {
+      if (parsed.slug && parsed.slug !== "qr-article-guide") {
+        setSlug(parsed.slug);
+      }
+    }
+    if (!focusKeyword && parsed.focusKeyword) {
+      setFocusKeyword(parsed.focusKeyword);
+    }
+    if (keywords.length === 0 && parsed.keywords.length > 0) {
+      setKeywords(parsed.keywords);
+    }
+    if (!summary && parsed.summary) {
+      setSummary(parsed.summary);
+    }
+    if (!metaDescription && parsed.metaDescription) {
+      setMetaDescription(parsed.metaDescription);
+    }
+    if ((!category || category === "Guides") && parsed.category) {
+      setCategory(parsed.category);
+    }
+
+    const stats = parsed.detectedStats;
+    showToast(
+      `⚡ تم التعرف على شكل الكتابة بنجاح! (${stats.h2Count} عنوان H2، ${stats.h3Count} عنوان H3، ${stats.listsCount} قوائم نقطية، ${stats.tablesCount} جداول، ${stats.calloutsCount} تلميحات)`
+    );
+  };
+
+  // Smart Paste Handler for Block Textarea
+  const handleBlockPaste = (idx: number, e: React.ClipboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+    const pastedText = e.clipboardData.getData("text");
+    if (!pastedText) return;
+
+    // Check if pasted text contains multi-line content or formatted elements
+    if (
+      pastedText.includes("\n") &&
+      (pastedText.split("\n").filter((l) => l.trim()).length > 1 ||
+        pastedText.includes("|") ||
+        pastedText.startsWith("#") ||
+        pastedText.startsWith("*") ||
+        pastedText.startsWith("•"))
+    ) {
+      e.preventDefault();
+      const parsed = parseRawArticleContent(pastedText, { currentTitle: title });
+      if (parsed.paragraphs && parsed.paragraphs.length > 0 && parsed.paragraphs[0] !== "") {
+        const nextParagraphs = [...paragraphs];
+        nextParagraphs.splice(idx, 1, ...parsed.paragraphs);
+        setParagraphs(nextParagraphs);
+        showToast(`⚡ تم تقسيم النص الملصق تلقائياً إلى ${parsed.paragraphs.length} أقسام منسقة!`);
+      } else {
+        updateParagraph(idx, pastedText);
+      }
+    }
   };
 
   // Auto-Save Draft to LocalStorage
@@ -1105,23 +1263,14 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
         </div>
       )}
 
-      {/* Top Security & Admin Header Bar */}
-      <div className="bg-slate-900 text-white rounded-2xl p-4 sm:px-6 flex flex-wrap items-center justify-between gap-4 border border-slate-800 shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-slate-100">لوحة الإدارة المشفرة (Admin Portal)</span>
-              <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold border border-emerald-500/30">
-                AUTH ACTIVE
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-mono">
-              الرابط السري مخفي ومحمي من محركات البحث (noindex, nofollow)
-            </p>
-          </div>
+      {/* Top Admin Header Bar */}
+      <div className="bg-slate-900 text-white rounded-2xl px-5 py-3 flex flex-wrap items-center justify-between gap-3 border border-slate-800 shadow-xs">
+        <div className="flex items-center gap-2.5">
+          <ShieldCheck className="w-4 h-4 text-blue-400" />
+          <span className="font-bold text-xs sm:text-sm text-slate-100">لوحة إدارة ونشر المقالات</span>
+          <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold border border-emerald-500/30">
+            AUTH ACTIVE
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -1135,28 +1284,21 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
 
           <button
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-red-950/60 hover:bg-red-900/80 text-red-300 rounded-xl text-xs font-semibold transition-colors border border-red-800/80 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-950/60 hover:bg-red-900/80 text-red-300 rounded-xl text-xs font-semibold transition-colors border border-red-800/80 cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>تسجيل الخروج والقفل</span>
+            <span>تسجيل الخروج</span>
           </button>
         </div>
       </div>
 
       {/* Top Header Card */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold font-mono uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>لوحة كتابة ونشر المقالات الذكية (SEO & AdSense Publisher Studio)</span>
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-black font-display tracking-tight text-slate-900">
-              محرر المقالات <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">المتوافقة مع أدسنس وسيو جوجل</span>
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black font-display tracking-tight text-slate-900">
+              محرر المقالات
             </h1>
-            <p className="text-sm text-slate-500 max-w-2xl leading-relaxed">
-              اكتب مقالات غنية، وقم بفحص جاهزيتها الفورية للقبول في Google AdSense وتصدر الكلمات المفتاحية في محرك البحث، ثم انشرها مباشرة على موقعك بضغطة زر واحدة.
-            </p>
           </div>
 
           {/* Hidden File Input for Native Desktop File Picker */}
@@ -1169,45 +1311,45 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
           />
 
           {/* Top Quick Actions */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 text-emerald-800 border border-emerald-300 font-bold text-sm rounded-xl shadow-2xs transition-transform active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs rounded-xl shadow-2xs transition-transform active:scale-95 cursor-pointer"
               title="رفع ملف المقال النصي (.txt أو .md) ليتعرف عليه النظام ويفصله فوراً"
             >
-              <UploadCloud className="w-4 h-4 text-emerald-600 animate-bounce" />
-              <span>رفع ملف المقال (.txt / .md)</span>
+              <UploadCloud className="w-4 h-4 text-emerald-600" />
+              <span>رفع ملف (.txt / .md)</span>
             </button>
 
             <button
               onClick={() => setShowSmartImportModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-50 to-blue-50 hover:from-indigo-100 hover:to-blue-100 text-indigo-800 border border-indigo-200 font-bold text-sm rounded-xl shadow-2xs transition-transform active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 font-bold text-xs rounded-xl shadow-2xs transition-transform active:scale-95 cursor-pointer"
               title="لصق مقال كامل أو رفع ملف وتصنيف جميع عناصره وجداوله تلقائياً"
             >
               <Wand2 className="w-4 h-4 text-indigo-600" />
-              <span>استيراد وتصنيف ذكي (Auto-Parser)</span>
+              <span>استيراد وتصنيف ذكي</span>
             </button>
 
             <button
               onClick={handlePublish}
-              className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-md shadow-blue-500/20 transition-transform active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
-              <span>نشر المقال للعموم فوراً</span>
+              <span>نشر المقال فوراً</span>
             </button>
 
             <button
               onClick={handleCopyTypeScriptCode}
-              className="inline-flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm rounded-xl transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
               title="نسخ كود TypeScript جاهز للإضافة إلى كود المشروع"
             >
               {copiedCode ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-              <span>{copiedCode ? "تم نسخ الكود!" : "تصدير كود TypeScript"}</span>
+              <span>{copiedCode ? "تم النسخ!" : "تصدير كود TypeScript"}</span>
             </button>
 
             <button
               onClick={handleClear}
-              className="inline-flex items-center gap-1.5 px-3 py-3 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors text-xs font-semibold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors text-xs font-semibold cursor-pointer"
               title="بدء مقال جديد"
             >
               <RefreshCw className="w-4 h-4" />
@@ -1217,79 +1359,79 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
         </div>
 
         {/* View Mode Navigation Tabs */}
-        <div className="mt-8 pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2 bg-slate-100/80 p-1.5 rounded-2xl">
+        <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl">
             <button
               onClick={() => setActiveTab("editor")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "editor"
-                  ? "bg-white text-blue-600 shadow-sm"
+                  ? "bg-white text-blue-600 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <Edit3 className="w-4 h-4" />
+              <Edit3 className="w-3.5 h-3.5" />
               <span>كتابة وتنسيق المقال</span>
             </button>
 
             <button
               onClick={() => setActiveTab("audit")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "audit"
-                  ? "bg-white text-blue-600 shadow-sm"
+                  ? "bg-white text-blue-600 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <TrendingUp className="w-4 h-4" />
+              <TrendingUp className="w-3.5 h-3.5" />
               <span>فحص السيو وأدسنس ({auditResults.seoScore}% / {auditResults.adsenseScore}%)</span>
             </button>
 
             <button
               onClick={() => setActiveTab("preview")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "preview"
-                  ? "bg-white text-blue-600 shadow-sm"
+                  ? "bg-white text-blue-600 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <Eye className="w-4 h-4" />
+              <Eye className="w-3.5 h-3.5" />
               <span>معاينة المقال الحي</span>
             </button>
 
             <button
               onClick={() => setActiveTab("manage")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "manage"
-                  ? "bg-white text-blue-600 shadow-sm"
+                  ? "bg-white text-blue-600 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <Layers className="w-4 h-4" />
+              <Layers className="w-3.5 h-3.5" />
               <span>المقالات المنشورة ({customArticles.length})</span>
             </button>
 
             <button
               onClick={() => setActiveTab("sitemap")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "sitemap"
-                  ? "bg-white text-blue-600 shadow-sm"
+                  ? "bg-white text-blue-600 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <Globe className="w-4 h-4 text-emerald-500" />
+              <Globe className="w-3.5 h-3.5 text-emerald-500" />
               <span>خريطة الموقع Sitemap.xml ({sitemapStats.totalUrls})</span>
             </button>
           </div>
 
           {/* Quick Word & Readiness Indicators */}
-          <div className="flex items-center gap-4 text-xs font-mono text-slate-500">
-            <span className="bg-slate-100 px-3 py-1.5 rounded-lg">
+          <div className="flex items-center gap-3 text-xs font-mono text-slate-500">
+            <span className="bg-slate-100 px-2.5 py-1 rounded-lg">
               الكلمات: <strong className="text-slate-900">{totalWords}</strong>
             </span>
-            <span className="bg-slate-100 px-3 py-1.5 rounded-lg">
+            <span className="bg-slate-100 px-2.5 py-1 rounded-lg">
               وقت القراءة: <strong className="text-slate-900">{estimatedReadTime}</strong>
             </span>
             <span
-              className={`px-3 py-1.5 rounded-lg font-bold ${
+              className={`px-2.5 py-1 rounded-lg font-bold ${
                 auditResults.adsenseScore >= 75
                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                   : "bg-amber-50 text-amber-700 border border-amber-200"
@@ -1327,198 +1469,178 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Editor Column (2 Cols) */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Quick Templates & Smart Auto-Parser Banner */}
-              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200/80 rounded-2xl p-4.5 space-y-3.5 shadow-2xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-2xs">
-                      <Wand2 className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-slate-900">المستورد والمصنف التلقائي الذكي (Smart Auto-Parser)</h4>
-                      <p className="text-[11px] text-slate-500">
-                        ارفع ملف نصي (.txt / .md) أو الصق المقال، وسيقوم النظام فوراً بفرز العناوين والجداول والكلمات المفتاحية.
-                      </p>
-                    </div>
+              {/* Title & Slug */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <Heading className="w-4 h-4 text-blue-600" />
+                      <span>عنوان المقال الرئيسي (H1 Title)</span>
+                    </label>
+                    <span
+                      className={`text-[11px] font-mono font-semibold ${
+                        title.length >= 35 && title.length <= 68 ? "text-emerald-600" : "text-slate-400"
+                      }`}
+                    >
+                      {title.length} حرفاً (المثالي: 40-65)
+                    </span>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
-                      title="رفع ملف .txt مباشرة من جهازك"
-                    >
-                      <UploadCloud className="w-3.5 h-3.5" />
-                      <span>رفع ملف (.txt)</span>
-                    </button>
-
-                    <button
-                      onClick={() => setShowSmartImportModal(true)}
-                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
-                    >
-                      <FileUp className="w-3.5 h-3.5" />
-                      <span>الاستيراد والتصنيف</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Quick Templates */}
-                <div className="pt-3 border-t border-indigo-100/80 flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-bold text-slate-600">أو ابدأ بقالب جاهز:</span>
-                  {ARTICLE_TEMPLATES.map((tmpl) => (
-                    <button
-                      key={tmpl.id}
-                      onClick={() => applyTemplate(tmpl)}
-                      className="px-2.5 py-1 bg-white hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-xs font-semibold text-blue-700 transition-colors shadow-2xs cursor-pointer"
-                    >
-                      {tmpl.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-            {/* Title & Slug */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                    <Heading className="w-4 h-4 text-blue-600" />
-                    <span>عنوان المقال الرئيسي (H1 Title)</span>
-                  </label>
-                  <span
-                    className={`text-[11px] font-mono font-semibold ${
-                      title.length >= 35 && title.length <= 68 ? "text-emerald-600" : "text-slate-400"
-                    }`}
-                  >
-                    {title.length} حرفاً (المثالي: 40-65)
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                  placeholder="مثال: QR Codes for Cafes: The Complete 2026 Guide"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Slug URL */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                  <Link2 className="w-4 h-4 text-slate-400" />
-                  <span>الرابط الدائم (Slug URL)</span>
-                </label>
-                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-600">
-                  <span className="text-slate-400 shrink-0">qrcodegeneratorx.com/{locale}/blog/</span>
                   <input
                     type="text"
-                    value={slug}
-                    onChange={(e) => setSlug(generateSlugFromText(e.target.value))}
-                    placeholder="qr-codes-for-cafes"
-                    className="flex-1 bg-transparent font-bold text-blue-600 focus:outline-none ml-1"
+                    value={title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                    placeholder="مثال: QR Codes for Cafes: The Complete 2026 Guide"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-              </div>
-            </div>
 
-            {/* Paragraphs and Content Builder */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-5 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                <div className="space-y-0.5">
+                {/* Slug URL */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <Link2 className="w-4 h-4 text-slate-400" />
+                    <span>الرابط الدائم (Slug URL)</span>
+                  </label>
+                  <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-600">
+                    <span className="text-slate-400 shrink-0">qrcodegeneratorx.com/{locale}/blog/</span>
+                    <input
+                      type="text"
+                      value={slug}
+                      onChange={(e) => setSlug(generateSlugFromText(e.target.value))}
+                      placeholder="qr-codes-for-cafes"
+                      className="flex-1 bg-transparent font-bold text-blue-600 focus:outline-none ml-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Paragraphs and Content Builder */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-5 shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                   <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                     <AlignLeft className="w-4 h-4 text-blue-600" />
-                    <span>محتوى المقال وفقراته (Content, Headings & Tables)</span>
+                    <span>محتوى المقال وتنسيق الفقرات</span>
                   </h3>
-                  <p className="text-xs text-slate-500">
-                    يدعم العناوين الفرعية (H2 / H3)، الجداول بصيغة Markdown، والقوائم والتلميحات.
-                  </p>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  {rawMarkdownMode && (
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={handleSmartParseFromRawText}
-                      className="text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-                      title="فرز وتصنيف النص الموجود واستخراج البيانات تلقائياً"
+                      onClick={handleClearParagraphs}
+                      className="text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                      title="مسح كافة الفقرات وتفريغ المحرر"
                     >
-                      <Wand2 className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>فرز وتصنيف ذكي للمقال</span>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>مسح الكل</span>
                     </button>
-                  )}
-                  <button
-                    onClick={() => setRawMarkdownMode(!rawMarkdownMode)}
-                    className="text-xs font-semibold text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                  >
-                    {rawMarkdownMode ? "عرض الفقرات المقسمة" : "وضع النص الكامل (Markdown)"}
-                  </button>
+
+                    <button
+                      id="btn-toggle-markdown-mode"
+                      onClick={() => setRawMarkdownMode(!rawMarkdownMode)}
+                      className="text-xs font-semibold text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    >
+                      {rawMarkdownMode ? "عرض الفقرات المقسمة" : "وضع النص الكامل (Markdown)"}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
               {/* RAW TEXT MODE */}
               {rawMarkdownMode ? (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-600">
-                    <span>💡 يمكنك لصق النص كاملاً وسيتعرف النظام على العناوين H2/H3 والجداول | Column 1 | Column 2 | تلقائياً.</span>
-                    <button
-                      onClick={handleSmartParseFromRawText}
-                      className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>تحليل فوري</span>
-                    </button>
-                  </div>
                   <textarea
                     value={rawText}
                     onChange={(e) => handleRawTextChange(e.target.value)}
                     rows={16}
-                    placeholder="الصق أو اكتب المقال بالكامل هنا...&#10;&#10;مثال:&#10;H2: عنوان القسم الأول&#10;شرح الفقرة بالتفصيل...&#10;&#10;| Feature | Cafe Benefit |&#10;| Contactless Menu | Speeds up table turns |"
+                    placeholder="الصق أو اكتب المقال بالكامل هنا...&#10;&#10;مثال:&#10;H2: عنوان القسم الأول&#10;شرح الفقرة بالتفصيل...&#10;&#10;• ميزة 1: سهولة الاستخدام&#10;• ميزة 2: سرعة المسح&#10;&#10;| Feature | Cafe Benefit |&#10;| Contactless Menu | Speeds up table turns |"
                     className="w-full p-4 border border-slate-200 rounded-xl text-sm leading-relaxed text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <p className="text-[11px] text-slate-400">
-                    💡 تلميح: اكتب في بداية السطر <strong>H2: عنوان القسم</strong> أو <strong>## عنوان القسم</strong> لإنشاء عنوان رئيسي، و <strong>H3: عنوان فرعي</strong> للعنوان الفرعي.
+                    💡 تلميح: اكتب في بداية السطر <strong>H2: عنوان القسم</strong> أو <strong>## عنوان</strong> لإنشاء عنوان رئيسي، و <strong>H3: عنوان فرعي</strong> للعنوان الفرعي، أو استخدم النجوم <strong>* عنصر</strong> للقوائم.
                   </p>
                 </div>
               ) : (
                 /* INTERACTIVE SECTIONS BUILDER */
                 <div className="space-y-4">
+                  {/* Block List */}
                   {paragraphs.map((p, idx) => {
-                    const isHeading = p.startsWith("H2: ");
-                    const cleanValue = isHeading ? p.replace(/^H2:\s*/, "") : p;
+                    const blockType = getBlockType(p);
+                    const cleanValue = p.replace(/^(?:H2:\s*|##\s*|H3:\s*|###\s*|>\s*|💡\s*)/, "");
+
+                    const badgeConfig = {
+                      h2: { label: `عنوان رئيسي H2 #${idx + 1}`, bg: "bg-blue-600 text-white", border: "border-blue-200 bg-blue-50/40" },
+                      h3: { label: `عنوان فرعي H3 #${idx + 1}`, bg: "bg-purple-600 text-white", border: "border-purple-200 bg-purple-50/40" },
+                      list: { label: `قائمة نقطية #${idx + 1}`, bg: "bg-emerald-600 text-white", border: "border-emerald-200 bg-emerald-50/40" },
+                      table: { label: `جدول منظم #${idx + 1}`, bg: "bg-amber-600 text-white", border: "border-amber-200 bg-amber-50/40" },
+                      callout: { label: `ملاحظة / تلميح #${idx + 1}`, bg: "bg-cyan-600 text-white", border: "border-cyan-200 bg-cyan-50/40" },
+                      code: { label: `كود برمجي #${idx + 1}`, bg: "bg-slate-800 text-white", border: "border-slate-300 bg-slate-100" },
+                      paragraph: { label: `فقرة نصية #${idx + 1}`, bg: "bg-slate-600 text-white", border: "border-slate-200 bg-slate-50/60" },
+                    }[blockType];
 
                     return (
                       <div
                         key={idx}
-                        className={`p-4 rounded-xl border transition-all ${
-                          isHeading
-                            ? "bg-blue-50/50 border-blue-200 shadow-2xs"
-                            : "bg-slate-50/60 border-slate-200"
-                        }`}
+                        className={`p-4 rounded-xl border transition-all ${badgeConfig.border} shadow-2xs`}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <span
-                            className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded uppercase tracking-wider ${
-                              isHeading
-                                ? "bg-blue-600 text-white"
-                                : "bg-slate-200 text-slate-700"
-                            }`}
-                          >
-                            {isHeading ? `عنوان فرعي (H2 Heading #${idx + 1})` : `فقرة محتوى #${idx + 1}`}
-                          </span>
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold font-mono px-2.5 py-1 rounded-md uppercase tracking-wider ${badgeConfig.bg} shadow-2xs`}>
+                              {badgeConfig.label}
+                            </span>
+
+                            {/* Format Conversion Pill Selector */}
+                            <div className="flex items-center gap-1 bg-white/80 p-0.5 rounded-lg border border-slate-200 text-[10px] font-bold">
+                              <button
+                                onClick={() => convertBlockFormat(idx, "h2")}
+                                className={`px-1.5 py-0.5 rounded cursor-pointer ${blockType === "h2" ? "bg-blue-600 text-white" : "text-slate-600 hover:text-blue-600"}`}
+                                title="تحويل إلى H2"
+                              >
+                                H2
+                              </button>
+                              <button
+                                onClick={() => convertBlockFormat(idx, "h3")}
+                                className={`px-1.5 py-0.5 rounded cursor-pointer ${blockType === "h3" ? "bg-purple-600 text-white" : "text-slate-600 hover:text-purple-600"}`}
+                                title="تحويل إلى H3"
+                              >
+                                H3
+                              </button>
+                              <button
+                                onClick={() => convertBlockFormat(idx, "list")}
+                                className={`px-1.5 py-0.5 rounded cursor-pointer ${blockType === "list" ? "bg-emerald-600 text-white" : "text-slate-600 hover:text-emerald-600"}`}
+                                title="تحويل إلى قائمة"
+                              >
+                                قائمة
+                              </button>
+                              <button
+                                onClick={() => convertBlockFormat(idx, "callout")}
+                                className={`px-1.5 py-0.5 rounded cursor-pointer ${blockType === "callout" ? "bg-cyan-600 text-white" : "text-slate-600 hover:text-cyan-600"}`}
+                                title="تحويل إلى ملاحظة"
+                              >
+                                تنبيه
+                              </button>
+                              <button
+                                onClick={() => convertBlockFormat(idx, "table")}
+                                className={`px-1.5 py-0.5 rounded cursor-pointer ${blockType === "table" ? "bg-amber-600 text-white" : "text-slate-600 hover:text-amber-600"}`}
+                                title="تحويل إلى جدول"
+                              >
+                                جدول
+                              </button>
+                              <button
+                                onClick={() => convertBlockFormat(idx, "paragraph")}
+                                className={`px-1.5 py-0.5 rounded cursor-pointer ${blockType === "paragraph" ? "bg-slate-700 text-white" : "text-slate-600 hover:text-slate-900"}`}
+                                title="تحويل إلى فقرة عادية"
+                              >
+                                فقرة
+                              </button>
+                            </div>
+                          </div>
 
                           <div className="flex items-center gap-1">
-                            {/* Toggle Heading Type */}
+                            {/* Insert Bold snippet */}
                             <button
                               onClick={() => {
-                                if (isHeading) {
-                                  updateParagraph(idx, cleanValue);
-                                } else {
-                                  updateParagraph(idx, `H2: ${cleanValue}`);
-                                }
+                                updateParagraph(idx, `${p} **نص عريض**`);
                               }}
-                              className="text-[11px] font-semibold text-slate-600 hover:text-blue-600 px-2 py-1 bg-white border border-slate-200 rounded-md cursor-pointer"
-                              title={isHeading ? "تحويل إلى فقرة عادية" : "تحويل إلى عنوان H2"}
+                              className="text-[11px] font-bold text-slate-600 hover:text-blue-600 px-2 py-0.5 bg-white border border-slate-200 rounded-md cursor-pointer"
+                              title="إضافة كلمة عريضة"
                             >
-                              {isHeading ? "تحويل لفقرة" : "تحويل لـ H2"}
+                              B
                             </button>
 
                             {/* Move Up/Down */}
@@ -1550,57 +1672,99 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
                           </div>
                         </div>
 
-                        {isHeading ? (
+                        {blockType === "h2" ? (
                           <input
                             type="text"
                             value={cleanValue}
                             onChange={(e) => updateParagraph(idx, `H2: ${e.target.value}`)}
-                            placeholder="اكتب عنوان القسم الفرعي هنا..."
-                            className="w-full px-3 py-2 bg-white border border-blue-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onPaste={(e) => handleBlockPaste(idx, e)}
+                            placeholder="اكتب عنوان القسم الرئيسي H2 هنا..."
+                            className="w-full px-3.5 py-2.5 bg-white border border-blue-200 rounded-lg text-sm font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        ) : blockType === "h3" ? (
+                          <input
+                            type="text"
+                            value={cleanValue}
+                            onChange={(e) => updateParagraph(idx, `H3: ${e.target.value}`)}
+                            onPaste={(e) => handleBlockPaste(idx, e)}
+                            placeholder="اكتب العنوان الفرعي أو السؤال H3 هنا..."
+                            className="w-full px-3.5 py-2.5 bg-white border border-purple-200 rounded-lg text-sm font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          />
+                        ) : blockType === "callout" ? (
+                          <textarea
+                            value={cleanValue}
+                            onChange={(e) => updateParagraph(idx, `> 💡 ${e.target.value}`)}
+                            onPaste={(e) => handleBlockPaste(idx, e)}
+                            rows={2}
+                            placeholder="اكتب نص الملاحظة أو التنبيه الهام..."
+                            className="w-full px-3.5 py-2.5 bg-white border border-cyan-200 rounded-lg text-sm font-medium text-cyan-950 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                          />
+                        ) : blockType === "table" ? (
+                          <textarea
+                            value={p}
+                            onChange={(e) => updateParagraph(idx, e.target.value)}
+                            onPaste={(e) => handleBlockPaste(idx, e)}
+                            rows={4}
+                            placeholder="| Column 1 | Column 2 |\n| --- | --- |\n| Value 1 | Value 2 |"
+                            className="w-full px-3.5 py-2.5 bg-white border border-amber-200 rounded-lg text-xs font-mono leading-relaxed text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
                           />
                         ) : (
                           <textarea
-                            value={cleanValue}
+                            value={p}
                             onChange={(e) => updateParagraph(idx, e.target.value)}
-                            rows={3}
-                            placeholder="اكتب نص الفقرة بتفاصيل وافية وقيمة تفيد القارئ..."
-                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm leading-relaxed text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onPaste={(e) => handleBlockPaste(idx, e)}
+                            rows={blockType === "list" ? 4 : 3}
+                            placeholder={blockType === "list" ? "* عنصر القائمة 1\n* عنصر القائمة 2" : "اكتب نص الفقرة بتفاصيل وافية وقيمة تفيد القارئ..."}
+                            className={`w-full px-3.5 py-2.5 bg-white rounded-lg text-sm leading-relaxed text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                              blockType === "list" ? "border-emerald-200 font-medium" : "border-slate-200"
+                            }`}
                           />
                         )}
                       </div>
                     );
                   })}
 
-                  {/* Add Paragraph / Heading Controls */}
-                  <div className="flex flex-wrap items-center gap-3 pt-2">
-                    <button
-                      onClick={() => addParagraph(false)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>إضافة فقرة جديدة</span>
-                    </button>
+                  {/* Add Paragraph / Heading Controls Bottom Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <button
+                        onClick={() => addParagraph(false)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>إضافة فقرة جديدة</span>
+                      </button>
+
+                      <button
+                        onClick={() => addParagraph(true)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                      >
+                        <Heading className="w-4 h-4" />
+                        <span>إضافة عنوان رئيسي H2</span>
+                      </button>
+
+                      {/* Helper to insert internal link */}
+                      <button
+                        onClick={() => {
+                          const linkSnippet = "[مولد كود الـ QR المجاني](home)";
+                          navigator.clipboard.writeText(linkSnippet);
+                          showToast("تم نسخ كود الرابط الداخلي! الصقه في أي فقرة لربطها بصفحة المولد الرئيسية");
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-2 text-[11px] font-semibold text-slate-500 hover:text-blue-600 bg-white border border-slate-200 rounded-xl cursor-pointer"
+                        title="نسخ صيغة رابط داخلي لمولد الأكواد"
+                      >
+                        <Link2 className="w-3.5 h-3.5" />
+                        <span>نسخ كود رابط للمولد الرئيسي</span>
+                      </button>
+                    </div>
 
                     <button
-                      onClick={() => addParagraph(true)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                      onClick={handleClearParagraphs}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                      title="مسح كل فقرات المحتوى وتفريغ المحرر"
                     >
-                      <Heading className="w-4 h-4" />
-                      <span>إضافة عنوان فرعي H2 جديد</span>
-                    </button>
-
-                    {/* Helper to insert internal link */}
-                    <button
-                      onClick={() => {
-                        const linkSnippet = "[مولد كود الـ QR المجاني](home)";
-                        navigator.clipboard.writeText(linkSnippet);
-                        showToast("تم نسخ كود الرابط الداخلي! الصقه في أي فقرة لربطها بصفحة المولد الرئيسية");
-                      }}
-                      className="inline-flex items-center gap-1 px-3 py-2 text-[11px] font-semibold text-slate-500 hover:text-blue-600 bg-white border border-slate-200 rounded-xl cursor-pointer"
-                      title="نسخ صيغة رابط داخلي لمولد الأكواد"
-                    >
-                      <Link2 className="w-3.5 h-3.5" />
-                      <span>نسخ كود رابط للمولد الرئيسي</span>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>مسح الكل</span>
                     </button>
                   </div>
                 </div>
@@ -1882,55 +2046,163 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
       {/* TAB 3: LIVE ARTICLE PREVIEW */}
       {/* ======================================================== */}
       {activeTab === "preview" && (
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-12 shadow-sm space-y-8 max-w-4xl mx-auto">
-          {/* Top Post Metadata Header */}
-          <div className="space-y-4 border-b border-slate-100 pb-8 text-center">
-            <span className="inline-block px-3.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-xs uppercase tracking-wider font-mono">
-              {currentBlogPostObject.category}
-            </span>
-            <h1 className="text-3xl sm:text-5xl font-black font-display tracking-tight text-slate-900 leading-tight max-w-3xl mx-auto">
-              {currentBlogPostObject.title}
-            </h1>
-            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400 font-mono">
-              <span>📅 {currentBlogPostObject.date}</span>
-              <span>•</span>
-              <span>⏱️ {currentBlogPostObject.readTime}</span>
-              <span>•</span>
-              <span>🏷️ {currentBlogPostObject.keywords.join(", ")}</span>
+        <div className="space-y-6 max-w-4xl mx-auto">
+          {/* Top Bar for Preview Tab */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+              <Eye className="w-4 h-4 text-blue-600" />
+              <span>معاينة المقال الحي بتنسيق المدونة الفعلي</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveTab("editor")}
+                className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold cursor-pointer transition-colors"
+              >
+                العودة للمحرر
+              </button>
+              <button
+                onClick={handlePublish}
+                className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>نشر المقال فوراً</span>
+              </button>
             </div>
           </div>
 
-          <AdSenseAd adSlot="AUTO" />
-
-          {/* Article Summary Box */}
-          {currentBlogPostObject.summary && (
-            <div className="bg-slate-50 border-r-4 border-blue-600 p-5 rounded-xl text-slate-700 text-sm leading-relaxed font-medium">
-              {currentBlogPostObject.summary}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-12 shadow-sm space-y-8">
+            {/* Top Post Metadata Header */}
+            <div className="space-y-4 border-b border-slate-100 pb-8 text-center">
+              <span className="inline-block px-3.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-xs uppercase tracking-wider font-mono">
+                {currentBlogPostObject.category}
+              </span>
+              <h1 className="text-3xl sm:text-5xl font-black font-display tracking-tight text-slate-900 leading-tight max-w-3xl mx-auto">
+                {currentBlogPostObject.title}
+              </h1>
+              <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400 font-mono">
+                <span>📅 {currentBlogPostObject.date}</span>
+                <span>•</span>
+                <span>⏱️ {currentBlogPostObject.readTime}</span>
+                <span>•</span>
+                <span>🏷️ {currentBlogPostObject.keywords.join(", ")}</span>
+              </div>
             </div>
-          )}
 
-          {/* Article Body Content */}
-          <div className="space-y-6 text-slate-800 text-base leading-relaxed">
-            {currentBlogPostObject.content.map((block, idx) => {
-              if (block.startsWith("H2: ")) {
+            <AdSenseAd adSlot="AUTO" />
+
+            {/* Article Summary Box */}
+            {currentBlogPostObject.summary && (
+              <div className="bg-slate-50 border-r-4 border-blue-600 p-5 rounded-xl text-slate-700 text-sm leading-relaxed font-medium">
+                {currentBlogPostObject.summary}
+              </div>
+            )}
+
+            {/* Article Body Content */}
+            <div className="space-y-6 text-slate-800 text-base leading-relaxed">
+              {currentBlogPostObject.content.map((block, idx) => {
+                if (block.startsWith("H2: ")) {
+                  return (
+                    <h2
+                      key={idx}
+                      className="text-2xl font-extrabold font-display text-slate-900 pt-6 border-b border-slate-100 pb-3"
+                    >
+                      {block.replace(/^H2:\s*/, "")}
+                    </h2>
+                  );
+                }
+                if (block.startsWith("H3: ")) {
+                  return (
+                    <h3
+                      key={idx}
+                      className="text-xl font-bold font-display text-slate-900 pt-4 pb-1"
+                    >
+                      {block.replace(/^H3:\s*/, "")}
+                    </h3>
+                  );
+                }
+                if (block.startsWith("> ") || block.startsWith("💡") || block.startsWith("📌") || block.startsWith("⚠️")) {
+                  const cleanText = block.replace(/^>\s*/, "");
+                  return (
+                    <div key={idx} className="my-5 p-4 md:p-5 rounded-2xl bg-blue-50/80 border border-blue-200 text-slate-800 text-sm md:text-base leading-relaxed flex items-start gap-3 shadow-xs">
+                      <span className="text-xl shrink-0 mt-0.5">💡</span>
+                      <div className="flex-1 font-medium">{cleanText}</div>
+                    </div>
+                  );
+                }
+                if (block.startsWith("|") && block.includes("\n|")) {
+                  const rawLines = block.trim().split("\n").map((l) => l.trim()).filter(Boolean);
+                  const rows = rawLines.map((line) => line.replace(/^\||\|$/g, "").split("|").map((c) => c.trim()));
+                  const hasDivider = rows.length > 1 && rows[1].every((c) => /^[-:\s]+$/.test(c));
+                  const headerRow = hasDivider ? rows[0] : null;
+                  const bodyRows = hasDivider ? rows.slice(2) : rows;
+
+                  return (
+                    <div key={idx} className="overflow-x-auto my-6 rounded-2xl border border-slate-200 shadow-xs bg-white">
+                      <table className="min-w-full divide-y divide-slate-200 text-sm text-slate-700">
+                        {headerRow && (
+                          <thead className="bg-slate-50">
+                            <tr>
+                              {headerRow.map((cell, cIdx) => (
+                                <th key={cIdx} className="px-4 py-3.5 text-left font-black text-slate-900 text-xs md:text-sm uppercase tracking-wider border-b border-slate-200">
+                                  {cell}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                        )}
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {bodyRows.map((row, rIdx) => (
+                            <tr key={rIdx} className={rIdx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
+                              {row.map((cell, cIdx) => (
+                                <td key={cIdx} className="px-4 py-3 text-xs md:text-sm font-medium text-slate-700">
+                                  {cell}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                }
+                if (block.includes("\n• ") || block.includes("\n* ") || block.includes("\n- ") || block.startsWith("• ") || block.startsWith("* ") || block.startsWith("- ") || /^\s*\d+[\.\)]\s+/.test(block)) {
+                  const rawItems = block.split("\n").filter((l) => l.trim());
+                  const isNumbered = rawItems.some((l) => /^\s*\d+[\.\)]\s+/.test(l));
+
+                  return (
+                    <div key={idx} className="my-5 p-5 md:p-6 bg-slate-50/90 border border-slate-200/80 rounded-2xl shadow-xs">
+                      <ul className="space-y-3">
+                        {rawItems.map((li, lIdx) => {
+                          const isItemNumbered = /^\s*(\d+)[\.\)]\s+/.test(li);
+                          const numMatch = li.match(/^\s*(\d+)[\.\)]\s+(.+)$/);
+                          const cleanText = isItemNumbered && numMatch ? numMatch[2] : li.replace(/^\s*[\*\-\+•◦▪▫✓✔–—]\s+/, "");
+                          return (
+                            <li key={lIdx} className="flex items-start gap-3 text-slate-700 text-sm md:text-base leading-relaxed">
+                              {isNumbered || isItemNumbered ? (
+                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold shrink-0 mt-0.5 shadow-2xs">
+                                  {isItemNumbered && numMatch ? numMatch[1] : lIdx + 1}
+                                </span>
+                              ) : (
+                                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0 mt-2 ring-4 ring-blue-100" />
+                              )}
+                              <div className="flex-1 font-medium">{cleanText}</div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  );
+                }
                 return (
-                  <h2
-                    key={idx}
-                    className="text-2xl font-extrabold font-display text-slate-900 pt-6 border-b border-slate-100 pb-3"
-                  >
-                    {block.replace(/^H2:\s*/, "")}
-                  </h2>
+                  <p key={idx} className="leading-relaxed">
+                    {block}
+                  </p>
                 );
-              }
-              return (
-                <p key={idx} className="leading-relaxed">
-                  {block}
-                </p>
-              );
-            })}
-          </div>
+              })}
+            </div>
 
-          <AdSenseAd adSlot="AUTO" />
+            <AdSenseAd adSlot="AUTO" />
+          </div>
         </div>
       )}
 
