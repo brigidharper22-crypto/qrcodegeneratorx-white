@@ -30,6 +30,9 @@ import {
   ArrowRight,
   ArrowLeft,
   Sparkles,
+  BookOpen,
+  Search,
+  ChevronRight,
 } from "lucide-react";
 
 // --- HOME & STRUCTURAL PAGE TRANSLATIONS ---
@@ -462,15 +465,20 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<string>("home");
   const [sharedPayload, setSharedPayload] = useState<any>(null);
   const [articlesVersion, setArticlesVersion] = useState<number>(0);
+  const [isSyncingArticles, setIsSyncingArticles] = useState<boolean>(true);
 
   const hTrans = HOME_TRANSLATION_MAP[locale] || HOME_TRANSLATION_MAP.en;
 
   // Listen to custom article updates across tabs and within the app
   useEffect(() => {
     // Initial fetch of public articles from backend server
-    syncArticlesWithServer().then(() => {
-      setArticlesVersion((prev) => prev + 1);
-    });
+    syncArticlesWithServer()
+      .then(() => {
+        setArticlesVersion((prev) => prev + 1);
+      })
+      .finally(() => {
+        setIsSyncingArticles(false);
+      });
 
     const handleArticlesUpdate = () => {
       setArticlesVersion((prev) => prev + 1);
@@ -571,11 +579,38 @@ export default function App() {
     return getBlogPostsForLocale(locale);
   }, [locale, articlesVersion]);
 
-  // Extract variables for specific blog post route
+  // Extract variables for specific blog post route with bulletproof slug normalization
   const getBlogPost = useCallback(() => {
     if (currentPage.startsWith("blog/")) {
-      const id = currentPage.replace("blog/", "");
-      return currentBlogPosts.find((p) => p.id === id);
+      const rawParam = currentPage.replace(/^blog\/?/, "");
+      const targetSlug = decodeURIComponent(rawParam)
+        .replace(/^https?:\/\/[^/]+/i, "")
+        .replace(/^\/?(ar|en|fr|es|de|zh|pt|ja)\//i, "")
+        .replace(/^\/?blog\//i, "")
+        .replace(/^\/+|\/+$/g, "")
+        .trim()
+        .toLowerCase();
+
+      if (!targetSlug) return undefined;
+
+      return currentBlogPosts.find((p) => {
+        const cleanId = (p.id || "")
+          .replace(/^\/+|\/+$/g, "")
+          .trim()
+          .toLowerCase();
+        const cleanSlug = ((p as any).slug || "")
+          .replace(/^\/+|\/+$/g, "")
+          .trim()
+          .toLowerCase();
+
+        return (
+          cleanId === targetSlug ||
+          cleanSlug === targetSlug ||
+          cleanId.replace(/[-_]/g, "") === targetSlug.replace(/[-_]/g, "") ||
+          cleanId.endsWith(`/${targetSlug}`) ||
+          targetSlug.endsWith(`/${cleanId}`)
+        );
+      });
     }
     return undefined;
   }, [currentPage, currentBlogPosts]);
@@ -1000,8 +1035,70 @@ export default function App() {
             )}
 
             {/* VIEW 6: DETAILED BLOG POSTS READ PAGE */}
-            {currentPage.startsWith("blog/") && activeBlogPost && (
-              <BlogPostDetail post={activeBlogPost} onBack={() => handleNav("blog")} onNavigate={handleNav} />
+            {currentPage.startsWith("blog/") && (
+              activeBlogPost ? (
+                <BlogPostDetail post={activeBlogPost} onBack={() => handleNav("blog")} onNavigate={handleNav} />
+              ) : isSyncingArticles ? (
+                <div className="max-w-4xl mx-auto py-10 px-4 space-y-6 animate-pulse" id="article-loading-skeleton">
+                  <div className="h-6 w-32 bg-slate-200 rounded-lg"></div>
+                  <div className="h-10 w-3/4 bg-slate-200 rounded-xl"></div>
+                  <div className="h-4 w-1/2 bg-slate-100 rounded"></div>
+                  <div className="space-y-3 pt-6">
+                    <div className="h-4 bg-slate-100 rounded w-full"></div>
+                    <div className="h-4 bg-slate-100 rounded w-5/6"></div>
+                    <div className="h-4 bg-slate-100 rounded w-4/6"></div>
+                    <div className="h-32 bg-slate-50 border border-slate-100 rounded-2xl"></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="max-w-4xl mx-auto py-12 px-4 text-center space-y-8" id="article-not-found-view">
+                  <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+                    <BookOpen className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-display">
+                      {locale === "ar" ? "المقال غير موجود أو تم تحديث رابطه" : "Article Not Found or Moved"}
+                    </h2>
+                    <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                      {locale === "ar"
+                        ? "لم يتم العثور على المقال المطلوب في هذا الرابط. يمكنك تصفح قائمة مقالات المدونة الكاملة أدناه."
+                        : "The requested guide could not be located. You can explore all available articles and guides below."}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-center gap-3">
+                    <button
+                      onClick={() => handleNav("blog")}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-md transition-transform active:scale-95 cursor-pointer"
+                    >
+                      <span>{locale === "ar" ? "تصفح جميع مقالات المدونة" : "Browse All Blog Articles"}</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Available articles suggestions */}
+                  <div className="pt-8 border-t border-slate-100 text-left space-y-4">
+                    <h3 className="text-base font-bold text-slate-800 text-center">
+                      {locale === "ar" ? "مقالات مقترحة للقراءة الآن:" : "Recommended Guides to Read:"}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {currentBlogPosts.slice(0, 3).map((p) => (
+                        <div
+                          key={p.id}
+                          onClick={() => handleNav(`blog/${p.id}`)}
+                          className="p-4 bg-white border border-slate-200 hover:border-blue-400 rounded-xl cursor-pointer transition-all hover:shadow-xs space-y-2"
+                        >
+                          <span className="text-[10px] font-bold text-blue-600 uppercase bg-blue-50 px-2 py-0.5 rounded">
+                            {p.category}
+                          </span>
+                          <h4 className="text-xs font-bold text-slate-900 line-clamp-2">{p.title}</h4>
+                          <p className="text-[11px] text-slate-500 line-clamp-2">{p.summary}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )
             )}
 
             {/* VIEW 7: SECRET ADMIN ARTICLE EDITOR & PUBLISHER STUDIO */}

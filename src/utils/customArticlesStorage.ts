@@ -1,4 +1,6 @@
 import { BlogPost } from "../data/blogData";
+import { INITIAL_CUSTOM_ARTICLES } from "../data/initialCustomArticles";
+import { sanitizeSlug } from "./articleAutoParser";
 
 const STORAGE_KEY = "custom_published_articles_v1";
 const DRAFT_KEY = "article_editor_draft_v1";
@@ -7,61 +9,90 @@ const DRAFT_KEY = "article_editor_draft_v1";
 let inMemoryArticles: BlogPost[] | null = null;
 let isInitialSyncDone = false;
 
-// Synchronous getter for instant rendering
+// Helper to normalize an article's ID and properties
+export function normalizeArticle(article: BlogPost): BlogPost {
+  const cleanId = sanitizeSlug(article.id) || article.id.replace(/^\/+|\/+$/g, "").trim().toLowerCase();
+  return {
+    ...article,
+    id: cleanId,
+  };
+}
+
+// Synchronous getter for instant rendering (seeded with INITIAL_CUSTOM_ARTICLES)
 export function getCustomArticles(): BlogPost[] {
   if (inMemoryArticles !== null) {
     return inMemoryArticles;
   }
 
-  if (typeof window === "undefined") return [];
+  // Base starting collection from built-in seed articles
+  const seedArticlesMap = new Map<string, BlogPost>();
+  INITIAL_CUSTOM_ARTICLES.forEach((a) => {
+    const norm = normalizeArticle(a);
+    seedArticlesMap.set(norm.id, norm);
+  });
 
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        inMemoryArticles = parsed;
-        // Trigger background sync on first read
-        if (!isInitialSyncDone) {
-          syncArticlesWithServer();
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((a) => {
+            if (a && a.id) {
+              const norm = normalizeArticle(a);
+              seedArticlesMap.set(norm.id, norm);
+            }
+          });
         }
-        return parsed;
       }
+    } catch (e) {
+      console.error("Failed to load custom articles from localStorage:", e);
     }
-  } catch (e) {
-    console.error("Failed to load custom articles from localStorage:", e);
   }
 
-  // Trigger server sync
-  if (!isInitialSyncDone) {
+  const merged = Array.from(seedArticlesMap.values());
+  inMemoryArticles = merged;
+
+  // Trigger background sync on first read
+  if (!isInitialSyncDone && typeof window !== "undefined") {
     syncArticlesWithServer();
   }
 
-  return [];
+  return merged;
 }
 
 // Fetch all public articles from server and update local cache
 export async function syncArticlesWithServer(): Promise<BlogPost[]> {
   isInitialSyncDone = true;
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return INITIAL_CUSTOM_ARTICLES;
 
   try {
     const res = await fetch("/api/articles");
     if (res.ok) {
       const serverArticles: BlogPost[] = await res.json();
       if (Array.isArray(serverArticles)) {
-        // Merge server articles with any local un-synced articles
-        const local = getLocalArticlesOnly();
         const mergedMap = new Map<string, BlogPost>();
 
-        // Server articles take primary authority
-        serverArticles.forEach((a) => mergedMap.set(a.id, a));
-        // Add any local articles not on server yet (e.g. published offline)
+        // 1. First add initial seed articles
+        INITIAL_CUSTOM_ARTICLES.forEach((a) => {
+          const norm = normalizeArticle(a);
+          mergedMap.set(norm.id, norm);
+        });
+
+        // 2. Add local storage articles
+        const local = getLocalArticlesOnly();
         local.forEach((a) => {
-          if (!mergedMap.has(a.id)) {
-            mergedMap.set(a.id, a);
-            // Optionally post to server in background
-            saveCustomArticleToServer(a);
+          if (a && a.id) {
+            const norm = normalizeArticle(a);
+            mergedMap.set(norm.id, norm);
+          }
+        });
+
+        // 3. Server articles take precedence
+        serverArticles.forEach((a) => {
+          if (a && a.id) {
+            const norm = normalizeArticle(a);
+            mergedMap.set(norm.id, norm);
           }
         });
 
@@ -70,7 +101,7 @@ export async function syncArticlesWithServer(): Promise<BlogPost[]> {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
         } catch (e) {
-          // ignore storage quota
+          // ignore quota
         }
 
         window.dispatchEvent(new Event("custom_articles_updated"));
@@ -78,7 +109,6 @@ export async function syncArticlesWithServer(): Promise<BlogPost[]> {
       }
     }
   } catch (err) {
-    // In static or offline mode, fallback cleanly to local storage
     console.warn("Could not sync with /api/articles, using local cache:", err);
   }
 
@@ -91,7 +121,7 @@ function getLocalArticlesOnly(): BlogPost[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.map(normalizeArticle) : [];
   } catch (e) {
     return [];
   }
@@ -113,7 +143,8 @@ async function saveCustomArticleToServer(article: BlogPost): Promise<boolean> {
 
 async function deleteCustomArticleFromServer(id: string): Promise<boolean> {
   try {
-    const res = await fetch(`/api/articles/${encodeURIComponent(id)}`, {
+    const cleanId = sanitizeSlug(id) || id.replace(/^\/+|\/+$/g, "");
+    const res = await fetch(`/api/articles/${encodeURIComponent(cleanId)}`, {
       method: "DELETE",
     });
     return res.ok;
@@ -126,13 +157,14 @@ async function deleteCustomArticleFromServer(id: string): Promise<boolean> {
 export function saveCustomArticle(article: BlogPost): boolean {
   if (typeof window === "undefined") return false;
   try {
+    const normalized = normalizeArticle(article);
     const articles = [...getCustomArticles()];
-    const existingIndex = articles.findIndex((a) => a.id === article.id);
+    const existingIndex = articles.findIndex((a) => a.id === normalized.id);
 
     if (existingIndex >= 0) {
-      articles[existingIndex] = article;
+      articles[existingIndex] = normalized;
     } else {
-      articles.unshift(article);
+      articles.unshift(normalized);
     }
 
     inMemoryArticles = articles;
@@ -140,9 +172,9 @@ export function saveCustomArticle(article: BlogPost): boolean {
     window.dispatchEvent(new Event("custom_articles_updated"));
 
     // Async push to server for public visibility across all users
-    saveCustomArticleToServer(article).then((success) => {
+    saveCustomArticleToServer(normalized).then((success) => {
       if (success) {
-        console.log(`Article "${article.title}" published publicly to server database.`);
+        console.log(`Article "${normalized.title}" published publicly to server database.`);
       }
     });
 
@@ -156,7 +188,8 @@ export function saveCustomArticle(article: BlogPost): boolean {
 export function deleteCustomArticle(id: string): boolean {
   if (typeof window === "undefined") return false;
   try {
-    const articles = getCustomArticles().filter((a) => a.id !== id);
+    const cleanId = sanitizeSlug(id) || id.replace(/^\/+|\/+$/g, "");
+    const articles = getCustomArticles().filter((a) => a.id !== cleanId && a.id !== id);
     inMemoryArticles = articles;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(articles));
     window.dispatchEvent(new Event("custom_articles_updated"));

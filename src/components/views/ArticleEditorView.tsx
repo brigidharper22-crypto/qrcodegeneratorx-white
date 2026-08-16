@@ -570,7 +570,7 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
 
   // Build the complete BlogPost object
   const currentBlogPostObject: BlogPost = useMemo(() => {
-    const cleanId = slug.trim() || generateSlugFromText(title) || "new-article-post";
+    const cleanId = sanitizeSlug(slug) || generateSlugFromText(title) || "new-article-post";
     const dateFormatted = new Date().toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -2593,6 +2593,74 @@ Modern coffee shops and cafes thrive on speed, customer satisfaction, and repeat
               >
                 <Sparkles className="w-4 h-4" />
                 <span>تطبيق وفصل المقال فوراً إلى المحرر</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* PUBLISH SUCCESS NOTIFICATION MODAL */}
+      {/* ======================================================== */}
+      {publishedSuccessArticle && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 my-auto text-center">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 className="w-10 h-10" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 font-display">
+                تم نشر المقال بنجاح للعموم! 🎉
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto leading-relaxed">
+                مقالك متاح الآن في صفحة المدونة لجميع الزوار، وتمت إضافته تلقائياً لخريطة الموقع sitemap.xml.
+              </p>
+            </div>
+
+            {/* Article Summary Box */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-right space-y-2 text-xs">
+              <div className="flex items-center justify-between text-slate-400 font-mono text-[11px]">
+                <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-bold">{publishedSuccessArticle.category}</span>
+                <span>{publishedSuccessArticle.date}</span>
+              </div>
+              <h4 className="font-bold text-slate-900 text-sm leading-snug">{publishedSuccessArticle.title}</h4>
+              <p className="text-slate-500 line-clamp-2 text-[11px]">{publishedSuccessArticle.summary}</p>
+              <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] font-mono text-slate-600">
+                <span>الرابط: <strong className="text-blue-600">/blog/{publishedSuccessArticle.id}</strong></span>
+                <span>{publishedSuccessArticle.readTime}</span>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <button
+                onClick={() => {
+                  const targetId = publishedSuccessArticle.id;
+                  setPublishedSuccessArticle(null);
+                  onNavigate(`blog/${targetId}`);
+                }}
+                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-transform active:scale-95 cursor-pointer"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>معاينة المقال في المدونة فوراً</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setPublishedSuccessArticle(null);
+                  setActiveTab("manage");
+                }}
+                className="w-full sm:w-auto px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                إدارة المقالات
+              </button>
+
+              <button
+                onClick={() => setPublishedSuccessArticle(null)}
+                className="w-full sm:w-auto px-4 py-3 text-slate-400 hover:text-slate-700 text-xs font-semibold cursor-pointer"
+              >
+                إغلاق
               </button>
             </div>
           </div>
