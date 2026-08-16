@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useI18n } from "../../hooks/useI18n";
 import { BlogPost } from "../../data/blogData";
 import {
@@ -26,6 +26,7 @@ import {
   sanitizeSlug,
   detectCategory,
   ParsedArticleDraft,
+  readFileAsText,
 } from "../../utils/articleAutoParser";
 import {
   CheckCircle2,
@@ -71,6 +72,9 @@ import {
   Table as TableIcon,
   ListFilter,
   Sliders,
+  UploadCloud,
+  FileCheck,
+  FolderOpen,
 } from "lucide-react";
 import { AdSenseAd } from "../ads/AdSenseAd";
 
@@ -179,6 +183,91 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
   const [smartImportInput, setSmartImportInput] = useState("");
   const [parsedDraftPreview, setParsedDraftPreview] = useState<ParsedArticleDraft | null>(null);
 
+  // File Upload State & Refs
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [uploadedFileInfo, setUploadedFileInfo] = useState<{ name: string; size: string } | null>(null);
+  const [isReadingFile, setIsReadingFile] = useState(false);
+
+  // Read and parse an uploaded text/markdown file
+  const handleProcessUploadedFile = async (file: File, autoApplyDirectly: boolean = false) => {
+    if (!file) return;
+
+    // Check valid file extensions or mime types
+    const validExtensions = [".txt", ".md", ".text", ".markdown", ".rtf", ".html", ".htm", ".doc"];
+    const hasValidExt = validExtensions.some((ext) => file.name.toLowerCase().endsWith(ext));
+
+    if (!hasValidExt && !file.type.startsWith("text/")) {
+      showToast("يرجى اختيار ملف نصي بصيغة .txt أو .md أو .text");
+      return;
+    }
+
+    setIsReadingFile(true);
+    try {
+      const content = await readFileAsText(file);
+      if (!content || !content.trim()) {
+        showToast("الملف النصي فارغ!");
+        setIsReadingFile(false);
+        return;
+      }
+
+      // Format file size
+      const sizeInKb = (file.size / 1024).toFixed(1);
+      const formattedSize = file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : `${sizeInKb} KB`;
+      setUploadedFileInfo({ name: file.name, size: formattedSize });
+
+      const parsed = parseRawArticleContent(content);
+      setSmartImportInput(content);
+      setParsedDraftPreview(parsed);
+
+      if (autoApplyDirectly) {
+        handleApplySmartDraft(parsed);
+        showToast(`🎉 تم قراءة ملف "${file.name}" (${formattedSize}) والتعرف على العنوان، الكلمات المفتاحية والجداول بنجاح!`);
+      } else {
+        setShowSmartImportModal(true);
+        showToast(`📄 تم تحليل ملف "${file.name}" وتصنيف عناصره تلقائياً! اضغط "تطبيق" للتأكيد.`);
+      }
+    } catch (err) {
+      console.error("File upload error:", err);
+      showToast("حدث خطأ أثناء قراءة الملف النصي");
+    } finally {
+      setIsReadingFile(false);
+    }
+  };
+
+  const handleNativeFileChange = (e: React.ChangeEvent<HTMLInputElement>, autoApply: boolean = false) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleProcessUploadedFile(file, autoApply);
+    }
+    // reset input value so user can re-upload same file if edited
+    e.target.value = "";
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+  };
+
+  const handleDrop = (e: React.DragEvent, autoApply: boolean = false) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleProcessUploadedFile(file, autoApply);
+    }
+  };
+
   // Handle live input change in Smart Import Modal
   const handleSmartImportInputChange = (val: string) => {
     setSmartImportInput(val);
@@ -194,7 +283,7 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
   const handleApplySmartDraft = (draftToApply?: ParsedArticleDraft) => {
     const targetDraft = draftToApply || parsedDraftPreview || parseRawArticleContent(smartImportInput);
     if (!targetDraft.title && targetDraft.paragraphs.length === 0) {
-      showToast("يرجى لصق نص المقال أولاً للبدء بالتصنيف.");
+      showToast("يرجى لصق نص المقال أو رفع ملف نصي أولاً.");
       return;
     }
 
@@ -1070,14 +1159,32 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
             </p>
           </div>
 
+          {/* Hidden File Input for Native Desktop File Picker */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept=".txt,.md,.text,.markdown,.html,.htm,.rtf"
+            onChange={(e) => handleNativeFileChange(e, true)}
+          />
+
           {/* Top Quick Actions */}
           <div className="flex flex-wrap items-center gap-3">
             <button
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 text-emerald-800 border border-emerald-300 font-bold text-sm rounded-xl shadow-2xs transition-transform active:scale-95 cursor-pointer"
+              title="رفع ملف المقال النصي (.txt أو .md) ليتعرف عليه النظام ويفصله فوراً"
+            >
+              <UploadCloud className="w-4 h-4 text-emerald-600 animate-bounce" />
+              <span>رفع ملف المقال (.txt / .md)</span>
+            </button>
+
+            <button
               onClick={() => setShowSmartImportModal(true)}
               className="inline-flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-50 to-blue-50 hover:from-indigo-100 hover:to-blue-100 text-indigo-800 border border-indigo-200 font-bold text-sm rounded-xl shadow-2xs transition-transform active:scale-95 cursor-pointer"
-              title="لصق مقال كامل وتصنيف جميع عناصره وجداوله تلقائياً"
+              title="لصق مقال كامل أو رفع ملف وتصنيف جميع عناصره وجداوله تلقائياً"
             >
-              <Wand2 className="w-4 h-4 text-indigo-600 animate-pulse" />
+              <Wand2 className="w-4 h-4 text-indigo-600" />
               <span>استيراد وتصنيف ذكي (Auto-Parser)</span>
             </button>
 
@@ -1086,7 +1193,7 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
               className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-md shadow-blue-500/20 transition-transform active:scale-95 cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
-              <span>نشر المقال فوراً للمدونة</span>
+              <span>نشر المقال للعموم فوراً</span>
             </button>
 
             <button
@@ -1198,47 +1305,77 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
       {/* TAB 1: ARTICLE EDITOR & COMPOSER */}
       {/* ======================================================== */}
       {activeTab === "editor" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Editor Column (2 Cols) */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Quick Templates & Smart Auto-Parser Banner */}
-            <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200/80 rounded-2xl p-4.5 space-y-3.5 shadow-2xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-2xs">
-                    <Wand2 className="w-4 h-4" />
+        <div
+          className="relative"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, true)}
+        >
+          {/* Visual Drag and Drop Overlay */}
+          {isDraggingFile && (
+            <div className="absolute inset-0 bg-blue-600/90 backdrop-blur-xs z-30 rounded-3xl flex flex-col items-center justify-center p-8 text-white border-4 border-dashed border-white/80 animate-in fade-in">
+              <UploadCloud className="w-16 h-16 animate-bounce mb-3" />
+              <h3 className="text-2xl font-black font-display text-center">
+                أفلت ملف المقال النصي (.txt أو .md) هنا
+              </h3>
+              <p className="text-sm text-blue-100 text-center max-w-md mt-1">
+                سيقوم النظام فوراً بقراءة محتوى الملف، واستخراج العنوان، السيو، الكلمات المفتاحية، وفصل الجداول والفقرات تلقائياً!
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Editor Column (2 Cols) */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Quick Templates & Smart Auto-Parser Banner */}
+              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200/80 rounded-2xl p-4.5 space-y-3.5 shadow-2xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-2xs">
+                      <Wand2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900">المستورد والمصنف التلقائي الذكي (Smart Auto-Parser)</h4>
+                      <p className="text-[11px] text-slate-500">
+                        ارفع ملف نصي (.txt / .md) أو الصق المقال، وسيقوم النظام فوراً بفرز العناوين والجداول والكلمات المفتاحية.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900">المستورد والمصنف التلقائي الذكي (Smart Auto-Parser)</h4>
-                    <p className="text-[11px] text-slate-500">
-                      الصق مقالك بصيغة خام، وسيقوم النظام فوراً بفرز العناوين، الجداول، الكلمات المفتاحية، والفئات.
-                    </p>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
+                      title="رفع ملف .txt مباشرة من جهازك"
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      <span>رفع ملف (.txt)</span>
+                    </button>
+
+                    <button
+                      onClick={() => setShowSmartImportModal(true)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
+                    >
+                      <FileUp className="w-3.5 h-3.5" />
+                      <span>الاستيراد والتصنيف</span>
+                    </button>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setShowSmartImportModal(true)}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
-                >
-                  <FileUp className="w-3.5 h-3.5" />
-                  <span>فتح نافذة الاستيراد الذكي</span>
-                </button>
+                {/* Quick Templates */}
+                <div className="pt-3 border-t border-indigo-100/80 flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-600">أو ابدأ بقالب جاهز:</span>
+                  {ARTICLE_TEMPLATES.map((tmpl) => (
+                    <button
+                      key={tmpl.id}
+                      onClick={() => applyTemplate(tmpl)}
+                      className="px-2.5 py-1 bg-white hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-xs font-semibold text-blue-700 transition-colors shadow-2xs cursor-pointer"
+                    >
+                      {tmpl.name}
+                    </button>
+                  ))}
+                </div>
               </div>
-
-              {/* Quick Templates */}
-              <div className="pt-3 border-t border-indigo-100/80 flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-bold text-slate-600">أو ابدأ بقالب جاهز:</span>
-                {ARTICLE_TEMPLATES.map((tmpl) => (
-                  <button
-                    key={tmpl.id}
-                    onClick={() => applyTemplate(tmpl)}
-                    className="px-2.5 py-1 bg-white hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-xs font-semibold text-blue-700 transition-colors shadow-2xs cursor-pointer"
-                  >
-                    {tmpl.name}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* Title & Slug */}
             <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
@@ -1620,6 +1757,7 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* ======================================================== */}
@@ -2219,11 +2357,62 @@ export function ArticleEditorView({ onNavigate }: ArticleEditorViewProps) {
 
             {/* Modal Body */}
             <div className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
+              {/* Dedicated Text File Upload Dropzone */}
+              <input
+                type="file"
+                ref={modalFileInputRef}
+                className="hidden"
+                accept=".txt,.md,.text,.markdown,.html,.htm,.rtf"
+                onChange={(e) => handleNativeFileChange(e, false)}
+              />
+
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, false)}
+                onClick={() => modalFileInputRef.current?.click()}
+                className={`p-5 rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center flex flex-col items-center justify-center gap-2 ${
+                  isDraggingFile
+                    ? "border-indigo-600 bg-indigo-50/80 scale-[1.01]"
+                    : uploadedFileInfo
+                    ? "border-emerald-400 bg-emerald-50/40 hover:bg-emerald-50/70"
+                    : "border-slate-300 hover:border-indigo-500 bg-slate-50/80 hover:bg-indigo-50/30"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-xl ${uploadedFileInfo ? "bg-emerald-100 text-emerald-700" : "bg-indigo-100 text-indigo-700"}`}>
+                    {uploadedFileInfo ? <FileCheck className="w-6 h-6" /> : <UploadCloud className="w-6 h-6" />}
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm font-bold text-slate-800">
+                        {uploadedFileInfo ? `تم تحميل الملف: ${uploadedFileInfo.name}` : "اسحب وأفلت ملف المقال النصي (.txt أو .md) هنا"}
+                      </span>
+                      {uploadedFileInfo && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold">
+                          {uploadedFileInfo.size}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      يدعم ملفات .txt و .md بترميز UTF-8 مع التعرف التلقائي الفوري على العناوين، الجداول، والسيو
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-1">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:text-indigo-600 rounded-lg text-xs font-semibold shadow-2xs">
+                    <FolderOpen className="w-3.5 h-3.5" />
+                    <span>{uploadedFileInfo ? "اختيار ملف آخر من جهازك" : "أو اضغط للاختيار من الكمبيوتر"}</span>
+                  </span>
+                </div>
+              </div>
+
               {/* Quick Actions Bar */}
               <div className="flex flex-wrap items-center justify-between gap-2.5 bg-indigo-50/70 border border-indigo-150 p-3 rounded-2xl">
                 <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-indigo-600" />
-                  <span>هل ترغب في تجربة مثال جاهز؟</span>
+                  <span>أو ابدأ بمثال تجريبي:</span>
                 </span>
                 <button
                   onClick={() => {
@@ -2271,7 +2460,7 @@ Modern coffee shops and cafes thrive on speed, customer satisfaction, and repeat
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                     <FileText className="w-4 h-4 text-blue-600" />
-                    <span>الصق نص المقال الخام هنا (Raw Article Text):</span>
+                    <span>أو الصق نص المقال الخام هنا (Raw Article Text):</span>
                   </label>
                   <span className="text-xs font-mono text-slate-400">
                     {smartImportInput.length.toLocaleString()} حرفاً
@@ -2280,21 +2469,8 @@ Modern coffee shops and cafes thrive on speed, customer satisfaction, and repeat
                 <textarea
                   value={smartImportInput}
                   onChange={(e) => handleSmartImportInputChange(e.target.value)}
-                  rows={10}
-                  placeholder={`الصق المقال هنا... مثال:
-QR Codes for Cafes: The Complete 2026 Guide
-
-SEO Title: QR Codes for Cafes – Create a Free Cafe QR Code
-Meta Description: Learn how to use QR codes for cafes...
-Primary Keyword: QR Codes for Cafes
-URL Slug: /qr-codes-for-cafes
-Secondary Keywords: cafe QR code, coffee shop QR code, wifi qr
-
-## 1. Why Cafes Need QR Codes
-Modern cafes thrive on speed...
-
-| Type | Use Case |
-| Menu | Contactless dining |`}
+                  rows={8}
+                  placeholder={`الصق المقال هنا أو ارفع ملف نصي أعلاه...`}
                   className="w-full p-4 border border-slate-200 rounded-2xl text-xs sm:text-sm font-mono leading-relaxed text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
                 />
               </div>

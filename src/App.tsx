@@ -9,6 +9,7 @@ import JsonLd from "./components/seo/JsonLd";
 import FAQAccordion from "./components/ui/FAQAccordion";
 import { BLOG_POSTS } from "./data/blogData";
 import { getBlogPostsForLocale } from "./data/blogTranslations";
+import { syncArticlesWithServer } from "./utils/customArticlesStorage";
 
 const QRGenerator = lazy(() => import("./components/tool/QRGenerator"));
 const BlogCard = lazy(() => import("./components/ui/BlogCard").then(m => ({ default: m.BlogCard })));
@@ -466,14 +467,26 @@ export default function App() {
 
   // Listen to custom article updates across tabs and within the app
   useEffect(() => {
+    // Initial fetch of public articles from backend server
+    syncArticlesWithServer().then(() => {
+      setArticlesVersion((prev) => prev + 1);
+    });
+
     const handleArticlesUpdate = () => {
       setArticlesVersion((prev) => prev + 1);
     };
     window.addEventListener("custom_articles_updated", handleArticlesUpdate);
     window.addEventListener("storage", handleArticlesUpdate);
+
+    // Periodic sync every 30s to catch new published articles for public readers
+    const interval = setInterval(() => {
+      syncArticlesWithServer();
+    }, 30000);
+
     return () => {
       window.removeEventListener("custom_articles_updated", handleArticlesUpdate);
       window.removeEventListener("storage", handleArticlesUpdate);
+      clearInterval(interval);
     };
   }, []);
 

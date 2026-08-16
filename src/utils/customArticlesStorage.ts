@@ -1,9 +1,91 @@
-import { BlogPost, BLOG_POSTS } from "../data/blogData";
+import { BlogPost } from "../data/blogData";
 
 const STORAGE_KEY = "custom_published_articles_v1";
 const DRAFT_KEY = "article_editor_draft_v1";
 
+// In-memory cache of custom articles
+let inMemoryArticles: BlogPost[] | null = null;
+let isInitialSyncDone = false;
+
+// Synchronous getter for instant rendering
 export function getCustomArticles(): BlogPost[] {
+  if (inMemoryArticles !== null) {
+    return inMemoryArticles;
+  }
+
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        inMemoryArticles = parsed;
+        // Trigger background sync on first read
+        if (!isInitialSyncDone) {
+          syncArticlesWithServer();
+        }
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error("Failed to load custom articles from localStorage:", e);
+  }
+
+  // Trigger server sync
+  if (!isInitialSyncDone) {
+    syncArticlesWithServer();
+  }
+
+  return [];
+}
+
+// Fetch all public articles from server and update local cache
+export async function syncArticlesWithServer(): Promise<BlogPost[]> {
+  isInitialSyncDone = true;
+  if (typeof window === "undefined") return [];
+
+  try {
+    const res = await fetch("/api/articles");
+    if (res.ok) {
+      const serverArticles: BlogPost[] = await res.json();
+      if (Array.isArray(serverArticles)) {
+        // Merge server articles with any local un-synced articles
+        const local = getLocalArticlesOnly();
+        const mergedMap = new Map<string, BlogPost>();
+
+        // Server articles take primary authority
+        serverArticles.forEach((a) => mergedMap.set(a.id, a));
+        // Add any local articles not on server yet (e.g. published offline)
+        local.forEach((a) => {
+          if (!mergedMap.has(a.id)) {
+            mergedMap.set(a.id, a);
+            // Optionally post to server in background
+            saveCustomArticleToServer(a);
+          }
+        });
+
+        const merged = Array.from(mergedMap.values());
+        inMemoryArticles = merged;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        } catch (e) {
+          // ignore storage quota
+        }
+
+        window.dispatchEvent(new Event("custom_articles_updated"));
+        return merged;
+      }
+    }
+  } catch (err) {
+    // In static or offline mode, fallback cleanly to local storage
+    console.warn("Could not sync with /api/articles, using local cache:", err);
+  }
+
+  return getCustomArticles();
+}
+
+function getLocalArticlesOnly(): BlogPost[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -11,15 +93,40 @@ export function getCustomArticles(): BlogPost[] {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
-    console.error("Failed to load custom articles from localStorage:", e);
     return [];
+  }
+}
+
+async function saveCustomArticleToServer(article: BlogPost): Promise<boolean> {
+  try {
+    const res = await fetch("/api/articles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(article),
+    });
+    return res.ok;
+  } catch (e) {
+    console.warn("Failed to POST article to server:", e);
+    return false;
+  }
+}
+
+async function deleteCustomArticleFromServer(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/articles/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    return res.ok;
+  } catch (e) {
+    console.warn("Failed to DELETE article from server:", e);
+    return false;
   }
 }
 
 export function saveCustomArticle(article: BlogPost): boolean {
   if (typeof window === "undefined") return false;
   try {
-    const articles = getCustomArticles();
+    const articles = [...getCustomArticles()];
     const existingIndex = articles.findIndex((a) => a.id === article.id);
 
     if (existingIndex >= 0) {
@@ -28,8 +135,17 @@ export function saveCustomArticle(article: BlogPost): boolean {
       articles.unshift(article);
     }
 
+    inMemoryArticles = articles;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(articles));
     window.dispatchEvent(new Event("custom_articles_updated"));
+
+    // Async push to server for public visibility across all users
+    saveCustomArticleToServer(article).then((success) => {
+      if (success) {
+        console.log(`Article "${article.title}" published publicly to server database.`);
+      }
+    });
+
     return true;
   } catch (e) {
     console.error("Failed to save custom article:", e);
@@ -41,8 +157,13 @@ export function deleteCustomArticle(id: string): boolean {
   if (typeof window === "undefined") return false;
   try {
     const articles = getCustomArticles().filter((a) => a.id !== id);
+    inMemoryArticles = articles;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(articles));
     window.dispatchEvent(new Event("custom_articles_updated"));
+
+    // Async delete from server
+    deleteCustomArticleFromServer(id);
+
     return true;
   } catch (e) {
     console.error("Failed to delete custom article:", e);

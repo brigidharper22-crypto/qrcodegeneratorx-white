@@ -306,6 +306,24 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
     structuredParagraphs.find((p) => !p.startsWith("H2: ") && !p.startsWith("H3: ") && !p.includes("|") && p.length > 20)?.slice(0, 220) ||
     "";
 
+  // If no keywords were explicitly detected, extract natural smart keywords from title and headings
+  if (parsedKeywords.length === 0 && finalTitle) {
+    const words = finalTitle
+      .replace(/[^\w\s\u0621-\u064A]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 2);
+    const stopWords = new Set([
+      "the", "and", "for", "with", "how", "what", "why", "this", "that", "from",
+      "في", "من", "إلى", "على", "عن", "مع", "هذا", "هذه", "التي", "الذي", "كيف", "ماذا", "لماذا", "شرح", "دليل"
+    ]);
+    const cleanWords = words.filter((w) => !stopWords.has(w.toLowerCase()));
+    cleanWords.slice(0, 5).forEach((w) => {
+      if (!parsedKeywords.includes(w)) {
+        parsedKeywords.push(w);
+      }
+    });
+  }
+
   // Auto detect category
   const detectedCategory = detectCategory(
     `${finalTitle} ${extractedFocusKeyword} ${parsedKeywords.join(" ")} ${structuredParagraphs.slice(0, 3).join(" ")}`,
@@ -321,7 +339,7 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
   return {
     title: finalTitle,
     slug: finalSlug,
-    focusKeyword: extractedFocusKeyword || parsedKeywords[0] || "",
+    focusKeyword: extractedFocusKeyword || parsedKeywords[0] || finalTitle.split(" ").slice(0, 3).join(" "),
     metaDescription: finalMetaDescription || derivedSummary,
     category: detectedCategory,
     summary: derivedSummary,
@@ -337,4 +355,21 @@ export function parseRawArticleContent(rawInput: string): ParsedArticleDraft {
       keywordsCount: parsedKeywords.length,
     },
   };
+}
+
+/**
+ * Helper to safely read a text file (.txt, .md, .doc, etc.) from the user's computer
+ */
+export function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      resolve(content || "");
+    };
+    reader.onerror = (e) => {
+      reject(new Error("فشل قراءة الملف النصي"));
+    };
+    reader.readAsText(file, "UTF-8");
+  });
 }
